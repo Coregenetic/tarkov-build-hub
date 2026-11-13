@@ -11,13 +11,15 @@ Fan-Projekt, nicht mit Battlestate Games verbunden. Spieldaten und Bilder stamme
 | 0 | Server-Inventur, Architektur, Design-Richtung | erledigt |
 | 1 | Datenfundament: versionierte Spieldaten, Import mit Vorschau, Freigabe und Rückweg | erledigt (Server-Betrieb folgt mit Deployment) |
 | 2 | Kompatibilitäts-Engine, geprüft an allen 401 Waffen-Presets | erledigt |
-| 3 | Twitch-Login, Profile, Rollen | offen |
+| 3 | Next.js-App, Twitch-Login, Profile, Rollen | erledigt |
 | 4–9 | Gunsmith, Veröffentlichen, Discovery, Community, Go-live | offen |
 
 ## Aufbau
 
 ```
-apps/importer          CLI: Spieldaten abrufen, prüfen, freigeben, zurückrollen, Presets verifizieren
+apps/web               Next.js-Anwendung (Seiten, Login, Profile)
+apps/importer          Verwaltungs-CLI: Spieldaten, Presets prüfen, Rollen und Sperren
+packages/auth          Twitch-Login (OIDC) und Sitzungen
 packages/compat-engine Kompatibilitätsprüfung ohne Abhängigkeiten (Browser + Server)
 packages/game-data     Lädt einen Datensatz als Eingabe für die Engine
 packages/data-adapters Adapter für json.tarkov.dev + Normalisierung + Prüfbericht
@@ -34,7 +36,8 @@ Voraussetzungen: Node 22, pnpm 10, PostgreSQL 16.
 pnpm install
 cp .env.example .env            # DATABASE_URL eintragen
 pnpm db:migrate
-pnpm check                      # Lint, Typprüfung, Tests, Build
+pnpm check                      # Lint, Typprüfung, Build, Tests
+pnpm --filter @tbh/web dev      # App lokal auf http://localhost:3000
 ```
 
 Integrationstests gegen PostgreSQL laufen nur, wenn `TEST_DATABASE_URL` gesetzt ist:
@@ -48,7 +51,7 @@ scripts/test-db.sh stop
 
 ## Spieldaten importieren
 
-Siehe [docs/datenimport.md](docs/datenimport.md) und [docs/kompatibilitaet.md](docs/kompatibilitaet.md).
+Siehe [docs/datenimport.md](docs/datenimport.md), [docs/kompatibilitaet.md](docs/kompatibilitaet.md) und [docs/anmeldung.md](docs/anmeldung.md).
 
 ```bash
 pnpm importer import --mode pvp           # legt eine Vorschau an

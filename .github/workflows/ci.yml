@@ -38,5 +38,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      # Build vor den Tests: der Browser-Test startet die gebaute App.
       - run: pnpm build
+      - run: pnpm test
+        env:
+          CHROME_PATH: /usr/bin/google-chrome

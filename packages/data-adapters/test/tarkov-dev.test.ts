@@ -8,7 +8,7 @@ import {
   parseTranslations,
   SourceFormatError,
   validateDataset,
-} from "../src/index.js";
+} from "../src/index.ts";
 
 /**
  * Fixture = unveränderter Ausschnitt aus json.tarkov.dev (regular, Stand 13.11.2026):

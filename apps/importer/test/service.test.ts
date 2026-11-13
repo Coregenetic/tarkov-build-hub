@@ -3,8 +3,9 @@ import { fileURLToPath } from "node:url";
 import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fetchTarkovDevDataset, type FetchResult } from "@tbh/data-adapters";
-import { auditLog, connect, item, itemDataset, itemName, itemSlot, runMigrations, slotAllowedItem, type DbHandle } from "@tbh/db";
-import { activateDataset, discardDataset, importDataset, ImportRefusedError, listDatasets, rollbackDataset } from "../src/service.js";
+import { auditLog, connect, item, itemDataset, itemName, itemSlot, slotAllowedItem, type DbHandle } from "@tbh/db";
+import { resetTestDatabase } from "@tbh/db/testing";
+import { activateDataset, discardDataset, importDataset, ImportRefusedError, listDatasets, rollbackDataset } from "../src/service.ts";
 
 /**
  * Läuft gegen eine echte PostgreSQL (TEST_DATABASE_URL, siehe scripts/test-db.sh).
@@ -24,12 +25,7 @@ describe.skipIf(!url)("Import-Dienst gegen PostgreSQL", () => {
   let fixture: FetchResult;
 
   beforeAll(async () => {
-    const reset = connect(url);
-    await reset.db.execute(sql`DROP SCHEMA IF EXISTS public CASCADE`);
-    await reset.db.execute(sql`DROP SCHEMA IF EXISTS drizzle CASCADE`);
-    await reset.db.execute(sql`CREATE SCHEMA public`);
-    await reset.close();
-    await runMigrations(url);
+    await resetTestDatabase(url!);
     handle = connect(url);
     fixture = await fetchTarkovDevDataset({ mode: "pvp", fromDir: fixtureDir });
   });

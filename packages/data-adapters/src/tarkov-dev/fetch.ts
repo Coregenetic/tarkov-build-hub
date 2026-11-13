@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { normalizeTarkovDev, parseTranslations, SourceFormatError } from "./normalize.js";
-import type { TranslationTable } from "./normalize.js";
-import { LANGS } from "../types.js";
-import type { FetchedDataset, GameMode, Lang } from "../types.js";
+import { normalizeTarkovDev, parseTranslations, SourceFormatError } from "./normalize.ts";
+import type { TranslationTable } from "./normalize.ts";
+import { LANGS } from "../types.ts";
+import type { FetchedDataset, GameMode, Lang } from "../types.ts";
 
 export const DEFAULT_BASE_URL = "https://json.tarkov.dev";
 

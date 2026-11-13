@@ -1,6 +1,7 @@
 import os from "node:os";
 import { parseArgs } from "node:util";
 import { fetchTarkovDevDataset, SourceFormatError, type GameMode } from "@tbh/data-adapters";
+import { banUser, setRole, unbanUser, type Role } from "@tbh/auth";
 import { connect } from "@tbh/db";
 import {
   activateDataset,
@@ -10,10 +11,10 @@ import {
   ImportRefusedError,
   listDatasets,
   rollbackDataset,
-} from "./service.js";
-import { verifyPresets } from "./verify.js";
+} from "./service.ts";
+import { verifyPresets } from "./verify.ts";
 
-const HELP = `Tarkov Build Hub – Spieldaten-Import
+const HELP = `Tarkov Build Hub – Verwaltung
 
 Befehle:
   import   --mode pvp|pve [--from-dir ORDNER] [--base-url URL] [--allow-duplicate]
@@ -24,6 +25,10 @@ Befehle:
   discard  <id>                      Vorschau verwerfen
   rollback --mode pvp|pve            Zum vorherigen Datensatz zurückkehren
   verify-presets <id>                Alle Presets mit der Kompatibilitäts-Engine prüfen
+
+  role  <login|twitch-id> user|moderator|admin   Rolle vergeben (Nutzer muss sich einmal angemeldet haben)
+  ban   <login|twitch-id> --reason TEXT          Sperren und alle Sitzungen beenden
+  unban <login|twitch-id>                        Sperre aufheben
 
 Umgebung: DATABASE_URL (Pflicht), TARKOV_DEV_BASE_URL, TBH_ACTOR`;
 
@@ -47,11 +52,12 @@ async function main(argv: string[]): Promise<void> {
       "from-dir": { type: "string" },
       "base-url": { type: "string" },
       patch: { type: "string" },
+      reason: { type: "string" },
       "allow-duplicate": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
     },
   });
-  const [command, arg] = positionals;
+  const [command, arg, arg2] = positionals;
   if (!command || values.help) {
     console.log(HELP);
     return;
@@ -127,6 +133,24 @@ async function main(argv: string[]): Promise<void> {
         if (r.problems.length > 0) process.exitCode = 2;
         break;
       }
+      case "role": {
+        if (!arg || !["user", "moderator", "admin"].includes(arg2 ?? "")) throw new ImportRefusedError("Nutzung: role <login|twitch-id> user|moderator|admin");
+        const user = await setRole(db, arg, arg2 as Role, actor);
+        console.log(`${user.displayName} (${user.login}) hat jetzt die Rolle „${user.role}“.`);
+        break;
+      }
+      case "ban": {
+        if (!arg || !values.reason) throw new ImportRefusedError("Nutzung: ban <login|twitch-id> --reason TEXT");
+        await banUser(db, arg, values.reason, actor);
+        console.log(`${arg} ist gesperrt, alle Sitzungen wurden beendet.`);
+        break;
+      }
+      case "unban": {
+        if (!arg) throw new ImportRefusedError("Nutzung: unban <login|twitch-id>");
+        await unbanUser(db, arg, actor);
+        console.log(`Sperre für ${arg} aufgehoben.`);
+        break;
+      }
       default:
         console.log(HELP);
         process.exitCode = 1;
@@ -158,6 +182,8 @@ main(process.argv.slice(2)).catch((error: unknown) => {
   if (error instanceof ImportRefusedError) {
     console.error(error.message);
     if (error.report) printReport(error.report);
+  } else if (error instanceof Error && /unbekannt/.test(error.message)) {
+    console.error(error.message);
   } else if (error instanceof SourceFormatError) {
     console.error(error.message);
     for (const d of error.details) console.error(`  ${d}`);

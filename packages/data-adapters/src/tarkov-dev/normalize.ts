@@ -1,5 +1,5 @@
-import { rawItemSchema, rawItemsFileSchema, rawTranslationFileSchema } from "./raw-schema.js";
-import type { RawItem } from "./raw-schema.js";
+import { rawItemSchema, rawItemsFileSchema, rawTranslationFileSchema } from "./raw-schema.ts";
+import type { RawItem } from "./raw-schema.ts";
 import type {
   GameMode,
   ItemName,
@@ -8,7 +8,7 @@ import type {
   NormalizedItem,
   NormalizedSlot,
   SlotName,
-} from "../types.js";
+} from "../types.ts";
 
 export type TranslationTable = Map<string, string>;
 

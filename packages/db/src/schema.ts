@@ -217,6 +217,47 @@ export const itemContains = pgTable(
   (t) => [primaryKey({ columns: [t.datasetId, t.itemExtId, t.sort] })],
 );
 
+/* ------------------------------------------------------------------ */
+/* Nutzer und Sitzungen – Anmeldung ausschließlich über Twitch.        */
+/* ------------------------------------------------------------------ */
+
+export const userRole = pgEnum("user_role", ["user", "moderator", "admin"]);
+
+export const appUser = pgTable(
+  "app_user",
+  {
+    id: serial("id").primaryKey(),
+    /** Unveränderliche Twitch-User-ID (OIDC "sub"). Einzige Identität. */
+    twitchId: text("twitch_id").notNull().unique(),
+    /** Twitch-Login in Kleinbuchstaben, für Profil-URLs. Kann sich ändern. */
+    login: text("login").notNull(),
+    displayName: text("display_name").notNull(),
+    avatarUrl: text("avatar_url"),
+    role: userRole("role").notNull().default("user"),
+    bannedAt: timestamp("banned_at", { withTimezone: true }),
+    banReason: text("ban_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("app_user_login_idx").on(t.login)],
+);
+
+export const userSession = pgTable(
+  "user_session",
+  {
+    /** SHA-256 des Tokens aus dem Cookie. Der Token selbst wird nie gespeichert. */
+    tokenHash: text("token_hash").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => appUser.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    userAgent: text("user_agent"),
+  },
+  (t) => [index("user_session_user_idx").on(t.userId), index("user_session_expires_idx").on(t.expiresAt)],
+);
+
 /** Protokoll aller Admin-Aktionen an Datensätzen. */
 export const auditLog = pgTable(
   "audit_log",

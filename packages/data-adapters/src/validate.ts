@@ -1,4 +1,4 @@
-import type { Lang, NormalizedDataset } from "./types.js";
+import type { Lang, NormalizedDataset } from "./types.ts";
 
 export interface ValidationReport {
   itemCount: number;

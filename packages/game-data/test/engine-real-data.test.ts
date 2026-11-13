@@ -14,7 +14,7 @@ import {
   type GameData,
 } from "@tbh/compat-engine";
 import { fetchTarkovDevDataset, type NormalizedDataset } from "@tbh/data-adapters";
-import { gameDataFromNormalized } from "../src/index.js";
+import { gameDataFromNormalized } from "../src/index.ts";
 
 /**
  * Engine-Tests ausschließlich mit echten Daten (Ausschnitt aus json.tarkov.dev, Stand 13.11.2026).

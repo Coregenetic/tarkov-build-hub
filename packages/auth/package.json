@@ -1,0 +1,20 @@
+{
+  "name": "@tbh/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Twitch-Login (OIDC) und Sitzungen, unabhängig vom Web-Framework.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json --outDir dist"
+  },
+  "dependencies": {
+    "@tbh/db": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "jose": "^6.2.17",
+    "zod": "^4.6.7"
+  }
+}

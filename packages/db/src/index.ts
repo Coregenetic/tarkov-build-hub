@@ -1,5 +1,5 @@
-export * as schema from "./schema.js";
-export * from "./schema.js";
-export { connect } from "./client.js";
-export type { Database, DbHandle } from "./client.js";
-export { runMigrations, MIGRATIONS_DIR } from "./migrate.js";
+export * as schema from "./schema.ts";
+export * from "./schema.ts";
+export { connect } from "./client.ts";
+export type { Database, DbHandle } from "./client.ts";
+export { runMigrations, MIGRATIONS_DIR } from "./migrate.ts";

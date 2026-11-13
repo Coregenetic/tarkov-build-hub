@@ -9,7 +9,7 @@ import type {
   Severity,
   SlotDef,
   ValidationResult,
-} from "./types.js";
+} from "./types.ts";
 
 interface Installed {
   path: BuildPath;

@@ -12,8 +12,9 @@
     "cli": "tsx src/cli.ts"
   },
   "dependencies": {
-    "@tbh/data-adapters": "workspace:*",
+    "@tbh/auth": "workspace:*",
     "@tbh/compat-engine": "workspace:*",
+    "@tbh/data-adapters": "workspace:*",
     "@tbh/db": "workspace:*",
     "@tbh/game-data": "workspace:*",
     "drizzle-orm": "^0.45.4"

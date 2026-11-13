@@ -8,7 +8,7 @@ import {
   removePart,
   validateBuild,
   type PlainItem,
-} from "../src/index.js";
+} from "../src/index.ts";
 
 /**
  * Regeltests mit KÜNSTLICHEN Daten (IDs wie "gun", "mount").

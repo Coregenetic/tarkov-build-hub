@@ -1,7 +1,7 @@
-export * from "./types.js";
-export { createGameData, itemFromPlain } from "./game-data.js";
-export type { PlainItem, PlainSlot } from "./game-data.js";
-export { validateBuild, slotRejects } from "./validate.js";
+export * from "./types.ts";
+export { createGameData, itemFromPlain } from "./game-data.ts";
+export type { PlainItem, PlainSlot } from "./game-data.ts";
+export { validateBuild, slotRejects } from "./validate.ts";
 export {
   assembleFromParts,
   BuildPathError,
@@ -11,5 +11,5 @@ export {
   listSlotCandidates,
   removePart,
   sumModifiers,
-} from "./operations.js";
-export type { AssemblyResult, CandidateCheck, ModifierSums, ReplaceResult } from "./operations.js";
+} from "./operations.ts";
+export type { AssemblyResult, CandidateCheck, ModifierSums, ReplaceResult } from "./operations.ts";

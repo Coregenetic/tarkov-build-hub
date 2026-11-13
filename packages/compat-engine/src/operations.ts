@@ -1,5 +1,5 @@
-import { slotRejects, validateBuild } from "./validate.js";
-import type { BuildNode, BuildPath, GameData, Issue, ItemDef } from "./types.js";
+import { slotRejects, validateBuild } from "./validate.ts";
+import type { BuildNode, BuildPath, GameData, Issue, ItemDef } from "./types.ts";
 
 export class BuildPathError extends Error {
   constructor(message: string) {

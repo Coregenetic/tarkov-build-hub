@@ -1,4 +1,4 @@
-import type { GameData, ItemDef, Modifiers, SlotDef } from "./types.js";
+import type { GameData, ItemDef, Modifiers, SlotDef } from "./types.ts";
 
 /** Einfache GameData aus einer Liste von Items. */
 export function createGameData(datasetId: string | number, items: Iterable<ItemDef>): GameData {
