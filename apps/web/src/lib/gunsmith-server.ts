@@ -1,7 +1,7 @@
 import "server-only";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { assembleFromParts, listSlotCandidates, type BuildNode, type GameData, type PlainItem } from "@tbh/compat-engine";
-import { gamePatch, item, itemCategory, itemContains, itemDataset, itemSlot, slotName, task } from "@tbh/db";
+import { gamePatch, item, itemCategory, itemContains, itemDataset, itemName, itemSlot, slotName, task } from "@tbh/db";
 import { loadDisplayNames, loadGameData, loadProcurementData } from "@tbh/game-data";
 import type { AmmoInfo, BundleItem, Lang, NamePair, WeaponBundle } from "@/gunsmith/types";
 import { db } from "./server";
@@ -335,4 +335,39 @@ export async function weaponCards(datasetId: number, ids: readonly string[], lan
       return [r.extId, { name: { name: n?.name ?? "?", short: n?.shortName ?? "?" }, img: images["image512"] ?? images["base"] ?? null }];
     }),
   );
+}
+
+const caliberCache = new Map<number, Promise<Map<string, string>>>();
+
+/**
+ * Lesbare Kaliber-Namen. Die Quelle liefert nur Codes (Caliber556x45NATO); der Name wird aus den
+ * echten Munitionsnamen desselben Kalibers abgeleitet (häufigstes erstes Wort, z. B. „5.56x45mm“).
+ */
+export function caliberLabels(datasetId: number): Promise<Map<string, string>> {
+  let p = caliberCache.get(datasetId);
+  if (!p) {
+    p = (async () => {
+      const rows = await db()
+        .select({ caliber: sql<string>`${item.properties}->>'caliber'`, name: itemName.name })
+        .from(item)
+        .innerJoin(itemName, and(eq(itemName.datasetId, item.datasetId), eq(itemName.extId, item.extId), eq(itemName.lang, "en")))
+        .where(and(eq(item.datasetId, datasetId), sql`'ammo' = ANY(${item.types})`, sql`${item.properties}->>'caliber' IS NOT NULL`));
+      const counts = new Map<string, Map<string, number>>();
+      for (const r of rows) {
+        // „.50 AE“ und „.50 BMG“ unterscheiden sich erst im zweiten Wort.
+        const words = r.name.split(" ");
+        const word = words[0]?.startsWith(".") ? words.slice(0, 2).join(" ") : words[0];
+        if (!word) continue;
+        const m = counts.get(r.caliber) ?? new Map<string, number>();
+        m.set(word, (m.get(word) ?? 0) + 1);
+        counts.set(r.caliber, m);
+      }
+      const out = new Map<string, string>();
+      for (const [cal, m] of counts) out.set(cal, [...m].sort((a, b) => b[1] - a[1])[0]![0]);
+      return out;
+    })();
+    p.catch(() => caliberCache.delete(datasetId));
+    caliberCache.set(datasetId, p);
+  }
+  return p;
 }

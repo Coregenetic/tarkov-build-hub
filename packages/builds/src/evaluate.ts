@@ -12,6 +12,8 @@ export interface Evaluation {
   issues: Issue[];
   /** Waffe ist im Datensatz eine Waffe. */
   isWeapon: boolean;
+  /** Kaliber der Waffe laut Daten, z. B. Caliber556x45NATO. */
+  caliber: string | null;
   ammoAllowed: boolean;
   allowedAmmo: string[];
   stats: BuildStats;
@@ -73,6 +75,7 @@ export async function evaluateTree(db: Database, data: GameData, datasetId: numb
     complete: validation.complete,
     issues: validation.issues,
     isWeapon: !!weaponRow?.types.includes("gun"),
+    caliber: typeof wp["caliber"] === "string" ? wp["caliber"] : null,
     ammoAllowed: ammo === null || (!!ammoStats && allowedAmmo.includes(ammo)),
     allowedAmmo,
     stats: computeStats(tree, items, weapon, ammoStats),

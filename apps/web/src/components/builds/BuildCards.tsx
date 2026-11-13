@@ -7,10 +7,12 @@ export interface BuildCardItem {
   weapon: string;
   img: string | null;
   meta: string;
+  /** Zusätzliche Zeile, z. B. Werte oder Ersteller. */
+  detail?: string;
   badge: string | null;
 }
 
-/** Kartenraster für Builds und Entwürfe (Profil, später Feed und Suche). */
+/** Kartenraster für Builds und Entwürfe (Profil, Feed, Suche). */
 export function BuildCards({ items }: { items: BuildCardItem[] }) {
   return (
     <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
@@ -25,6 +27,7 @@ export function BuildCards({ items }: { items: BuildCardItem[] }) {
             </span>
             <span className={s.cardMeta}>{b.weapon}</span>
             <span className={s.cardMeta}>{b.meta}</span>
+            {b.detail && <span className={s.cardMeta} style={{ color: "var(--ink-2)" }}>{b.detail}</span>}
             {b.badge && <span className="tag" style={{ alignSelf: "flex-start" }}>{b.badge}</span>}
           </Link>
         </li>

@@ -106,14 +106,14 @@ export function BuildPage({ view, bundle, uiLang, itemLang, t, viewer, loginUrl,
     });
 
   // Teileliste in Baum-Reihenfolge mit Slot-Namen.
-  const parts: { depth: number; slot: string; name: string; img: string | null }[] = [];
+  const parts: { depth: number; slot: string; name: string; img: string | null; id: string }[] = [];
   const walk = (node: BuildNode, depth: number) => {
     const item = bundle.items[node.itemId];
     for (const slot of item?.slots ?? []) {
       const child = node.slots?.[slot.id];
       if (!child) continue;
       const ci = bundle.items[child.itemId];
-      parts.push({ depth, slot: slotLabel(bundle, node.itemId, slot.id, itemLang), name: pickName(ci?.names, itemLang).name, img: ci?.img512 ?? null });
+      parts.push({ depth, slot: slotLabel(bundle, node.itemId, slot.id, itemLang), name: pickName(ci?.names, itemLang).name, img: ci?.img512 ?? null, id: child.itemId });
       walk(child, depth + 1);
     }
   };
@@ -262,7 +262,9 @@ export function BuildPage({ view, bundle, uiLang, itemLang, t, viewer, loginUrl,
                   <span className={s.thumb}>{p.img && <img src={p.img} alt="" loading="lazy" decoding="async" />}</span>
                   <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.25, minWidth: 0 }}>
                     <span className={s.small}>{p.slot}</span>
-                    <span style={{ overflowWrap: "anywhere" }}>{p.name}</span>
+                    <Link href={`/builds?teil=${p.id}`} style={{ overflowWrap: "anywhere", color: "var(--ink)" }} title={t.b_with_part}>
+                      {p.name}
+                    </Link>
                   </span>
                 </li>
               ))}

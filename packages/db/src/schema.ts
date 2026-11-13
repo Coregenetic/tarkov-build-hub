@@ -428,6 +428,16 @@ export const build = pgTable(
     forkedFromVersionId: integer("forked_from_version_id"),
     /** Herkunft als Text – bleibt, auch wenn das Original gelöscht wird. */
     forkedFromLabel: text("forked_from_label"),
+    /* Kennzahlen der neuesten Version – nur für Suche und Sortierung, die Wahrheit steht in build_version. */
+    latestDatasetId: integer("latest_dataset_id"),
+    patchLabel: text("patch_label"),
+    caliber: text("caliber"),
+    ergonomics: doublePrecision("ergonomics"),
+    recoilVertical: integer("recoil_vertical"),
+    partsPrice: integer("parts_price"),
+    partIds: text("part_ids").array().notNull().default(sql`'{}'::text[]`),
+    /** Öffentliche Varianten (für Sortierung „meiste Varianten“). */
+    forkCount: integer("fork_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     hiddenReason: text("hidden_reason"),
@@ -438,6 +448,8 @@ export const build = pgTable(
     index("build_owner_idx").on(t.ownerId),
     index("build_weapon_idx").on(t.mode, t.weaponExtId),
     index("build_fork_idx").on(t.forkedFromVersionId),
+    index("build_feed_idx").on(t.status, t.visibility, t.createdAt),
+    index("build_parts_idx").using("gin", t.partIds),
   ],
 );
 

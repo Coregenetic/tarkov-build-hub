@@ -13,6 +13,9 @@ export function SiteHeader({ user, t, loginEnabled, path }: { user: SessionUser 
           <Link href="/" style={{ color: path === "/" ? "var(--ink)" : "var(--muted)" }} aria-current={path === "/" ? "page" : undefined}>
             {t.nav_discover}
           </Link>
+ <Link href="/builds" style={{ color: path.startsWith("/builds") ? "var(--ink)" : "var(--muted)" }} aria-current={path.startsWith("/builds") ? "page" : undefined}>
+            {t.nav_builds}
+          </Link>
           <Link href="/gunsmith" style={{ color: path.startsWith("/gunsmith") ? "var(--ink)" : "var(--muted)" }} aria-current={path.startsWith("/gunsmith") ? "page" : undefined}>
             {t.nav_gunsmith}
           </Link>

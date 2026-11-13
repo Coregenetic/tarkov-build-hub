@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { gamePatch, itemDataset } from "@tbh/db";
-import { formatDate, getMessages } from "@/lib/i18n";
+import { PURPOSES, parseSearchParams, searchBuilds } from "@tbh/builds";
+import { BuildCards } from "@/components/builds/BuildCards";
+import { cardsFromHits } from "@/lib/discovery";
+import { activeDataset } from "@/lib/gunsmith-server";
+import { formatDate, getItemLang, getMessages } from "@/lib/i18n";
 import { authConfig, currentUser, db } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +24,26 @@ async function activeDatasets() {
 }
 
 export default async function HomePage() {
-  const [{ locale, t }, user, datasets] = await Promise.all([getMessages(), currentUser(), activeDatasets()]);
+  const [{ locale, t }, user, datasets, itemLang, ds] = await Promise.all([getMessages(), currentUser(), activeDatasets(), getItemLang(), activeDataset("pvp")]);
+  const [newest, forks] = await Promise.all([
+    searchBuilds(db(), { ...parseSearchParams({}), sort: "new" }, ds?.id ?? null),
+    searchBuilds(db(), { ...parseSearchParams({}), sort: "forks" }, ds?.id ?? null),
+  ]);
+  const [newestCards, forkCards] = await Promise.all([
+    cardsFromHits(newest.hits.slice(0, 6), ds?.id ?? null, itemLang, locale, t),
+    cardsFromHits(forks.hits.filter((h) => h.forkCount > 0).slice(0, 6), ds?.id ?? null, itemLang, locale, t),
+  ]);
+  const section = (id: string, title: string, href: string, cards: Awaited<ReturnType<typeof cardsFromHits>>) => (
+    <section aria-labelledby={id} style={{ paddingTop: 48 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 16 }}>
+        <h2 id={id} className="head" style={{ margin: 0, fontSize: 32 }}>
+          {title}
+        </h2>
+        <Link href={href}>{t.feed_all}</Link>
+      </div>
+      <BuildCards items={cards} />
+    </section>
+  );
   return (
     <>
       <section className="stage" style={{ borderBottom: "1px solid var(--line)" }}>
@@ -34,12 +57,18 @@ export default async function HomePage() {
             </h1>
             <p style={{ margin: 0, color: "var(--ink-2)", fontSize: 18, maxWidth: 560 }}>{t.hero_text}</p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 8 }}>
+              <Link className="btn btn-primary" href="/gunsmith">
+                {t.cta_build}
+              </Link>
+              <Link className="btn" href="/builds">
+                {t.cta_browse}
+              </Link>
               {user ? (
-                <Link className="btn btn-primary" href={`/u/${user.login}`}>
+                <Link className="btn" href={`/u/${user.login}`}>
                   {t.hero_cta_profile}
                 </Link>
               ) : authConfig() ? (
-                <a className="btn btn-primary" href="/auth/twitch/login">
+                <a className="btn" href="/auth/twitch/login">
                   {t.login}
                 </a>
               ) : null}
@@ -73,6 +102,32 @@ export default async function HomePage() {
           </aside>
         </div>
       </section>
+
+      <div className="container">
+        <nav aria-labelledby="zwecke" style={{ paddingTop: 40 }}>
+          <h2 id="zwecke" className="head" style={{ margin: "0 0 12px", fontSize: 22 }}>
+            {t.feed_purpose}
+          </h2>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {PURPOSES.map((p) => (
+              <Link key={p} href={`/builds?zweck=${p}`} className="btn" style={{ minHeight: 40, borderRadius: 20 }}>
+                {t[`purpose_${p}`]}
+              </Link>
+            ))}
+          </div>
+        </nav>
+        {newestCards.length === 0 ? (
+          <div className="panel" style={{ marginTop: 48, padding: "48px 24px", textAlign: "center" }}>
+            <p style={{ margin: "0 0 18px", color: "var(--muted)" }}>{t.feed_empty}</p>
+            <Link className="btn btn-primary" href="/gunsmith">
+              {t.cta_build}
+            </Link>
+          </div>
+        ) : (
+          section("neu", t.feed_new, "/builds", newestCards)
+        )}
+        {forkCards.length > 0 && section("varianten", t.feed_forks, "/builds?sort=forks", forkCards)}
+      </div>
     </>
   );
 }

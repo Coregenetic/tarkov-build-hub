@@ -179,6 +179,24 @@ describe.skipIf(!enabled)("Gunsmith: veröffentlichen und Varianten (Ende zu End
     await page.context().close();
   });
 
+  it("findet veröffentlichte Builds in Suche, Feed und Sitemap", async () => {
+    const page = await newPage();
+    await page.goto(`${base}/builds?q=SF3P`);
+    await expect(page.getByRole("link", { name: /M4A1 mit SF3P/ }).isVisible()).resolves.toBe(true);
+    await page.goto(`${base}/builds`);
+    await page.getByLabel("Einsatzzweck").selectOption("silent");
+    await page.getByRole("button", { name: "Filtern" }).click();
+    await page.waitForURL(/zweck=silent/);
+    await expect(page.getByRole("link", { name: /Bobs Variante/ }).isVisible()).resolves.toBe(true);
+    await page.goto(`${base}/builds?zweck=cqb`);
+    await expect(page.getByText("Keine Builds passen zu diesen Filtern.").isVisible()).resolves.toBe(true);
+    await page.goto(`${base}/`);
+    await expect(page.getByRole("heading", { name: "Neueste Builds" }).isVisible()).resolves.toBe(true);
+    const sitemap = await (await fetch(`${base}/sitemap.xml`)).text();
+    expect(sitemap).toContain(publishedUrl.split("/b/")[1]);
+    await page.context().close();
+  });
+
   it("zeigt veröffentlichte Builds im Profil und Entwürfe nur dem Eigentümer", async () => {
     const page = alicePage;
     await page.goto(`${base}/u/alice_e2e`);

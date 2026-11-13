@@ -3,6 +3,7 @@ export const gunsmithMessages = {
   de: {
     pick_title: "Neuer Build",
     b_by: "von",
+    b_with_part: "Weitere Builds mit diesem Teil",
     b_published: "veröffentlicht",
     b_versions: "Versionen",
     b_latest: "neueste",
@@ -160,6 +161,7 @@ export const gunsmithMessages = {
   en: {
     pick_title: "New build",
     b_by: "by",
+    b_with_part: "More builds with this part",
     b_published: "published",
     b_versions: "Versions",
     b_latest: "latest",

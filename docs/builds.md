@@ -19,3 +19,12 @@
 ## Ältere Patches
 Die Build-Seite zeigt immer die Werte der Version. Beruht sie auf einem älteren Datensatz, prüft die Seite zusätzlich
 gegen den aktiven und zeigt „auch mit den aktuellen Spieldaten gültig“ bzw. die betroffenen Teile.
+
+## Suche (`/builds`)
+Filter stehen in der URL (deutsche Schlüssel: `q`, `waffe`, `kaliber`, `zweck`, `budget`, `patch`, `von`, `teil`, `sort`, `seite`)
+und funktionieren ohne JavaScript. Kaputte Werte werden ignoriert. Freitext trifft Titel, Ersteller und Waffennamen in
+Deutsch und Englisch (inkl. eigener Namen); `%` und `_` gelten als normale Zeichen. Sichtbar sind nur öffentliche,
+veröffentlichte Builds nicht gesperrter Nutzer. Für Filter und Sortierung hält `build` die Kennzahlen der neuesten
+Version (Kaliber, Patch, Ergonomie, Rückstoß, Preis, Teile, Varianten-Zahl); maßgeblich bleibt `build_version`.
+Kaliber-Namen werden aus den echten Munitionsnamen abgeleitet (z. B. `Caliber556x45NATO` → „5.56x45mm“).
+„Beliebt“ folgt mit Merken/Bewertungen in Phase 8; bis dahin gibt es „Neueste“ und „Meiste Varianten“.

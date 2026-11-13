@@ -69,6 +69,20 @@ async function activeDataset(db: Database, mode: "pvp" | "pve") {
   return row;
 }
 
+type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+/** Zählt die öffentlichen Varianten eines Builds neu (für die Sortierung „meiste Varianten“). */
+async function refreshForkCount(tx: Database | Tx, forkedFromVersionId: number | null): Promise<void> {
+  if (forkedFromVersionId === null) return;
+  const [origin] = await tx.select({ buildId: buildVersion.buildId }).from(buildVersion).where(eq(buildVersion.id, forkedFromVersionId));
+  if (!origin) return;
+  await tx.execute(sql`
+    UPDATE build SET fork_count = (
+      SELECT count(*) FROM build f JOIN build_version v ON v.id = f.forked_from_version_id
+      WHERE v.build_id = ${origin.buildId} AND f.status = 'published' AND f.visibility = 'public'
+    ) WHERE id = ${origin.buildId}`);
+}
+
 /* ------------------------------------------------------------------ */
 /* Entwürfe                                                            */
 /* ------------------------------------------------------------------ */
@@ -176,6 +190,16 @@ export async function publishDraft(db: Database, actor: Actor, draftId: number, 
   if (!evaluation.complete) throw new BuildError("incomplete_build", "Pflicht-Slots sind leer.", evaluation.issues.filter((i) => i.code === "missing_required"));
   if (!evaluation.ammoAllowed) throw new BuildError("ammo_not_allowed", "Die Munition passt nicht zu Waffe und Magazin.");
 
+  const figures = {
+    latestDatasetId: ds.id,
+    patchLabel: ds.patch,
+    caliber: evaluation.caliber,
+    ergonomics: evaluation.stats.ergonomics,
+    recoilVertical: evaluation.stats.recoilVertical,
+    partsPrice: evaluation.stats.partsPrice,
+    partIds: evaluation.partIds,
+  };
+
   return db.transaction(async (tx) => {
     let buildId: number;
     let publicId: string;
@@ -190,7 +214,7 @@ export async function publishDraft(db: Database, actor: Actor, draftId: number, 
       version = base.latestVersion + 1;
       await tx
         .update(build)
-        .set({ title: meta.title, purpose: meta.purpose, visibility: meta.visibility, latestVersion: version, updatedAt: sql`now()` })
+        .set({ title: meta.title, purpose: meta.purpose, visibility: meta.visibility, latestVersion: version, updatedAt: sql`now()`, ...figures })
         .where(eq(build.id, buildId));
     } else {
       publicId = newPublicId();
@@ -208,6 +232,7 @@ export async function publishDraft(db: Database, actor: Actor, draftId: number, 
           latestVersion: 1,
           forkedFromVersionId: draft.forkedFromVersionId,
           forkedFromLabel: draft.forkedFromLabel,
+          ...figures,
         })
         .returning({ id: build.id });
       buildId = created!.id;
@@ -227,6 +252,8 @@ export async function publishDraft(db: Database, actor: Actor, draftId: number, 
       procurement: evaluation.procurement,
     });
     await tx.delete(buildDraft).where(eq(buildDraft.id, draft.id));
+    const [self] = await tx.select({ forkedFrom: build.forkedFromVersionId }).from(build).where(eq(build.id, buildId));
+    await refreshForkCount(tx, self?.forkedFrom ?? null);
     return { publicId, version };
   });
 }
@@ -439,8 +466,9 @@ export async function setVisibility(db: Database, actor: Actor, publicId: string
     .update(build)
     .set({ visibility, updatedAt: sql`now()` })
     .where(and(eq(build.publicId, publicId), eq(build.ownerId, actor.id), ne(build.status, "deleted")))
-    .returning({ id: build.id });
+    .returning({ id: build.id, forkedFrom: build.forkedFromVersionId });
   if (!updated[0]) throw new BuildError("not_found", "Build nicht gefunden.");
+  await refreshForkCount(db, updated[0].forkedFrom);
 }
 
 /** Löscht einen eigenen Build für alle sichtbar. Versionen bleiben, damit Varianten ihre Herkunft behalten. */
@@ -449,8 +477,9 @@ export async function deleteOwnBuild(db: Database, actor: Actor, publicId: strin
     .update(build)
     .set({ status: "deleted", deletedAt: sql`now()`, updatedAt: sql`now()` })
     .where(and(eq(build.publicId, publicId), eq(build.ownerId, actor.id), ne(build.status, "deleted")))
-    .returning({ id: build.id });
+    .returning({ id: build.id, forkedFrom: build.forkedFromVersionId });
   if (!updated[0]) throw new BuildError("not_found", "Build nicht gefunden.");
+  await refreshForkCount(db, updated[0].forkedFrom);
   await db.delete(buildDraft).where(and(eq(buildDraft.ownerId, actor.id), eq(buildDraft.baseBuildId, updated[0].id)));
 }
 
