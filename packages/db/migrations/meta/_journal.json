@@ -22,6 +22,13 @@
       "when": 1794591158432,
       "tag": "0002_phase5_procurement_names",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794602644154,
+      "tag": "0003_item_categories",
+      "breakpoints": true
     }
   ]
 }

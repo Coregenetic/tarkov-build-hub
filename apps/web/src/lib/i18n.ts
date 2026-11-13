@@ -4,6 +4,9 @@ import { cookies, headers } from "next/headers";
 export type Locale = "de" | "en";
 export const LOCALES: readonly Locale[] = ["de", "en"];
 export const LOCALE_COOKIE = "tbh_lang";
+/** Sprache der Item-Namen: auto (wie die Seite), de oder en. */
+export const ITEM_LANG_COOKIE = "tbh_item_lang";
+export type ItemLangSetting = "auto" | Locale;
 
 const messages = {
   de: {
@@ -52,6 +55,7 @@ const messages = {
     footer_fan: "Fan-Projekt, nicht mit Battlestate Games verbunden",
     footer_data: "Spieldaten und Bilder: tarkov.dev",
     language: "English",
+    nav_settings: "Einstellungen",
   },
   en: {
     nav_discover: "Discover",
@@ -99,6 +103,7 @@ const messages = {
     footer_fan: "Fan project, not affiliated with Battlestate Games",
     footer_data: "Game data and images: tarkov.dev",
     language: "Deutsch",
+    nav_settings: "Settings",
   },
 } as const;
 
@@ -115,6 +120,17 @@ export async function getLocale(): Promise<Locale> {
 export async function getMessages(): Promise<{ locale: Locale; t: Messages }> {
   const locale = await getLocale();
   return { locale, t: messages[locale] };
+}
+
+export async function getItemLangSetting(): Promise<ItemLangSetting> {
+  const v = (await cookies()).get(ITEM_LANG_COOKIE)?.value;
+  return v === "de" || v === "en" ? v : "auto";
+}
+
+/** Tatsächliche Sprache der Item-Namen. */
+export async function getItemLang(): Promise<Locale> {
+  const setting = await getItemLangSetting();
+  return setting === "auto" ? getLocale() : setting;
 }
 
 export function formatDate(date: Date, locale: Locale): string {

@@ -89,6 +89,13 @@ export interface TraderLevel {
   requiredCommerce: number;
 }
 
+export interface NormalizedCategory {
+  extId: string;
+  normalizedName: string;
+  parentExtId: string | null;
+  names: Partial<Record<Lang, string>>;
+}
+
 export interface NormalizedTrader {
   extId: string;
   normalizedName: string;
@@ -137,6 +144,7 @@ export interface NormalizedDataset {
   slotNames: SlotName[];
   /** Allgemeine Flohmarkt-Freischaltung (Spielerlevel) laut Quelle. */
   fleaMinPlayerLevel: number | null;
+  categories: NormalizedCategory[];
   traders: NormalizedTrader[];
   tasks: NormalizedTask[];
   barters: NormalizedBarter[];

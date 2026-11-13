@@ -156,6 +156,17 @@ describe("Händler, Tausch und Flohmarkt", () => {
     ]);
   });
 
+  it("übernimmt Kategorien mit Namen in beiden Sprachen", async () => {
+    const { dataset } = await normalizeFixture();
+    expect(dataset.categories).toHaveLength(112);
+    expect(dataset.categories.find((c) => c.extId === "5447b5f14bdc2d61278b4567")).toEqual({
+      extId: "5447b5f14bdc2d61278b4567",
+      normalizedName: "assault-rifle",
+      parentExtId: "5422acb9af1c889c16000029",
+      names: { de: "Sturmgewehr", en: "Assault rifle" },
+    });
+  });
+
   it("übernimmt das allgemeine Flohmarkt-Level und Tauschangebote mit Aufgabe", async () => {
     const { dataset } = await normalizeFixture();
     expect(dataset.fleaMinPlayerLevel).toBe(15);

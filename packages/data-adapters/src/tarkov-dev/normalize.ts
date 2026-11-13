@@ -253,6 +253,14 @@ export function normalizeTarkovDev(input: NormalizeInput): NormalizeResult {
       items,
       slotNames,
       fleaMinPlayerLevel: toNullableNumber(file.data.data.fleaMarket?.minPlayerLevel),
+      categories: Object.values(file.data.data.itemCategories ?? {})
+        .map((c) => ({
+          extId: c.id,
+          normalizedName: c.normalizedName,
+          parentExtId: c.parent ?? null,
+          names: namesFrom(input.translations, c.name ?? `${c.id} Name`),
+        }))
+        .sort((a, b) => a.extId.localeCompare(b.extId)),
       traders: normalizeTraders(input),
       tasks: normalizeTasks(input),
       barters: normalizeBarters(input),

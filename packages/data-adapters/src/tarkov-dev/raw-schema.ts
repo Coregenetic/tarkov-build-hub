@@ -87,6 +87,12 @@ export const rawItemsFileSchema = z
     data: z
       .object({
         items: z.record(z.string(), z.unknown()),
+        itemCategories: z
+          .record(
+            z.string(),
+            z.object({ id: z.string(), name: z.string().optional(), normalizedName: z.string(), parent: nullableString }).passthrough(),
+          )
+          .optional(),
         fleaMarket: z.object({ minPlayerLevel: z.number().nullable().optional() }).passthrough().nullable().optional(),
       })
       .passthrough(),

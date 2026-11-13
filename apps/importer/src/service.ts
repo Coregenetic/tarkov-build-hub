@@ -16,6 +16,7 @@ import {
   datasetRaw,
   gamePatch,
   item,
+  itemCategory,
   itemConflict,
   itemContains,
   itemDataset,
@@ -149,6 +150,11 @@ export async function importDataset(db: Database, fetched: FetchResult, options:
       })),
     );
 
+    await insertChunked(
+      tx,
+      itemCategory,
+      dataset.categories.map((c) => ({ datasetId, extId: c.extId, normalizedName: c.normalizedName, parentExtId: c.parentExtId, names: c.names })),
+    );
     await insertChunked(
       tx,
       trader,
@@ -363,6 +369,7 @@ export async function discardDataset(db: Database, id: number, actor: string): P
       barter,
       task,
       trader,
+      itemCategory,
       item,
       datasetRaw,
     ]) {

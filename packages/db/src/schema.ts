@@ -221,6 +221,21 @@ export const itemContains = pgTable(
   (t) => [primaryKey({ columns: [t.datasetId, t.itemExtId, t.sort] })],
 );
 
+/** Item-Kategorien (z. B. Sturmgewehr) mit Namen. */
+export const itemCategory = pgTable(
+  "item_category",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    extId: text("ext_id").notNull(),
+    normalizedName: text("normalized_name").notNull(),
+    parentExtId: text("parent_ext_id"),
+    names: jsonb("names").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.extId] })],
+);
+
 /** Händler mit Stufen (Spielerlevel, Ruf, Umsatz) je Datensatz. */
 export const trader = pgTable(
   "trader",

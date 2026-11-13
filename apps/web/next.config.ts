@@ -27,7 +27,7 @@ const config: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
-  transpilePackages: ["@tbh/auth", "@tbh/db"],
+  transpilePackages: ["@tbh/auth", "@tbh/db", "@tbh/compat-engine", "@tbh/game-data", "@tbh/data-adapters"],
   serverExternalPackages: ["postgres"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

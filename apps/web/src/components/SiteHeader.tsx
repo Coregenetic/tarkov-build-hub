@@ -13,11 +13,14 @@ export function SiteHeader({ user, t, loginEnabled, path }: { user: SessionUser 
           <Link href="/" style={{ color: path === "/" ? "var(--ink)" : "var(--muted)" }} aria-current={path === "/" ? "page" : undefined}>
             {t.nav_discover}
           </Link>
-          <span style={{ color: "var(--faint)" }} title="Folgt in Phase 5">
+          <Link href="/gunsmith" style={{ color: path.startsWith("/gunsmith") ? "var(--ink)" : "var(--muted)" }} aria-current={path.startsWith("/gunsmith") ? "page" : undefined}>
             {t.nav_gunsmith}
-          </span>
+          </Link>
         </nav>
         <span style={{ flex: 1 }} />
+        <Link href={`/einstellungen?back=${encodeURIComponent(path)}`} style={{ color: path.startsWith("/einstellungen") ? "var(--ink)" : "var(--muted)", fontSize: 14 }}>
+          {t.nav_settings}
+        </Link>
         <a href={`/lang?back=${encodeURIComponent(path)}`} style={{ color: "var(--muted)", fontSize: 14 }} hrefLang={t.language === "English" ? "en" : "de"}>
           {t.language}
         </a>
