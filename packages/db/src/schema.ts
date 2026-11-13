@@ -1,0 +1,232 @@
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  customType,
+  doublePrecision,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  serial,
+  smallint,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+
+/**
+ * Spieldaten – versioniert je Import (item_dataset).
+ * Grundregel: Ein Datensatz wird nach dem Import nie verändert. Neue Daten = neuer Datensatz.
+ * Veröffentlichte Builds verweisen später fest auf einen Datensatz.
+ */
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
+
+export const gameMode = pgEnum("game_mode", ["pvp", "pve"]);
+export const datasetStatus = pgEnum("dataset_status", ["preview", "active", "archived", "discarded"]);
+
+export const gamePatch = pgTable("game_patch", {
+  id: serial("id").primaryKey(),
+  /** Patch-Bezeichnung, z. B. "0.16.9". Wird beim Freigeben vom Admin vergeben. */
+  label: text("label").notNull().unique(),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const itemDataset = pgTable(
+  "item_dataset",
+  {
+    id: serial("id").primaryKey(),
+    mode: gameMode("mode").notNull(),
+    source: text("source").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
+    sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }),
+    checksum: text("checksum").notNull(),
+    status: datasetStatus("status").notNull().default("preview"),
+    patchId: integer("patch_id").references(() => gamePatch.id, { onDelete: "restrict" }),
+    itemCount: integer("item_count").notNull(),
+    /** Prüfbericht des Imports (Zählungen, Warnungen, Fehler). */
+    report: jsonb("report").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+    activatedBy: text("activated_by"),
+  },
+  (t) => [
+    // Höchstens ein aktiver Datensatz je Spielmodus.
+    uniqueIndex("item_dataset_one_active_per_mode").on(t.mode).where(sql`${t.status} = 'active'`),
+    index("item_dataset_mode_status_idx").on(t.mode, t.status),
+  ],
+);
+
+/** Unveränderte Rohdaten (gzip) für Fehlersuche und erneuten Import. */
+export const datasetRaw = pgTable(
+  "dataset_raw",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    /** "items" oder "items_de", "items_en" … */
+    part: text("part").notNull(),
+    gzip: bytea("gzip").notNull(),
+    byteLength: integer("byte_length").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.part] })],
+);
+
+export const item = pgTable(
+  "item",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    extId: text("ext_id").notNull(),
+    normalizedName: text("normalized_name").notNull(),
+    types: text("types").array().notNull(),
+    categories: text("categories").array().notNull(),
+    propertiesType: text("properties_type"),
+    width: smallint("width"),
+    height: smallint("height"),
+    weight: doublePrecision("weight"),
+    basePrice: integer("base_price"),
+    avg24hPrice: integer("avg24h_price"),
+    low24hPrice: integer("low24h_price"),
+    lastScan: timestamp("last_scan", { withTimezone: true }),
+    sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }),
+    images: jsonb("images").notNull(),
+    properties: jsonb("properties").notNull(),
+    conflictingCategories: text("conflicting_categories").array().notNull(),
+    conflictingSlotIds: text("conflicting_slot_ids").array().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.datasetId, t.extId] }),
+    index("item_types_idx").using("gin", t.types),
+    index("item_normalized_name_idx").on(t.datasetId, t.normalizedName),
+  ],
+);
+
+export const itemName = pgTable(
+  "item_name",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    extId: text("ext_id").notNull(),
+    lang: text("lang").notNull(),
+    name: text("name").notNull(),
+    shortName: text("short_name").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.datasetId, t.extId, t.lang] }),
+    index("item_name_search_idx").on(t.datasetId, t.lang, t.name),
+  ],
+);
+
+export const slotName = pgTable(
+  "slot_name",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    lang: text("lang").notNull(),
+    name: text("name").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.key, t.lang] })],
+);
+
+export const itemSlot = pgTable(
+  "item_slot",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    itemExtId: text("item_ext_id").notNull(),
+    slotExtId: text("slot_ext_id").notNull(),
+    nameId: text("name_id").notNull(),
+    nameKey: text("name_key"),
+    required: boolean("required").notNull(),
+    sort: smallint("sort").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.itemExtId, t.slotExtId] })],
+);
+
+/** Kompatibilität: Welche Items passen in welchen Slot (aus der Quelle, nie geraten). */
+export const slotAllowedItem = pgTable(
+  "slot_allowed_item",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    itemExtId: text("item_ext_id").notNull(),
+    slotExtId: text("slot_ext_id").notNull(),
+    allowedExtId: text("allowed_ext_id").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.datasetId, t.itemExtId, t.slotExtId, t.allowedExtId] }),
+    index("slot_allowed_item_reverse_idx").on(t.datasetId, t.allowedExtId),
+  ],
+);
+
+export const slotFilterRule = pgEnum("slot_filter_rule", ["allowed_category", "excluded_item", "excluded_category"]);
+
+/** Seltenere Filterregeln je Slot (Kategorien und Ausschlüsse). */
+export const slotFilter = pgTable(
+  "slot_filter",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    itemExtId: text("item_ext_id").notNull(),
+    slotExtId: text("slot_ext_id").notNull(),
+    rule: slotFilterRule("rule").notNull(),
+    value: text("value").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.itemExtId, t.slotExtId, t.rule, t.value] })],
+);
+
+/** Items, die sich gegenseitig ausschließen. */
+export const itemConflict = pgTable(
+  "item_conflict",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    itemExtId: text("item_ext_id").notNull(),
+    conflictingExtId: text("conflicting_ext_id").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.itemExtId, t.conflictingExtId] })],
+);
+
+/** Bestandteile, z. B. die Teile eines Presets. */
+export const itemContains = pgTable(
+  "item_contains",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    itemExtId: text("item_ext_id").notNull(),
+    containedExtId: text("contained_ext_id").notNull(),
+    count: integer("count").notNull(),
+    sort: smallint("sort").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.itemExtId, t.sort] })],
+);
+
+/** Protokoll aller Admin-Aktionen an Datensätzen. */
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: serial("id").primaryKey(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    actor: text("actor").notNull(),
+    action: text("action").notNull(),
+    target: text("target").notNull(),
+    details: jsonb("details").notNull().default({}),
+  },
+  (t) => [index("audit_log_at_idx").on(t.at)],
+);

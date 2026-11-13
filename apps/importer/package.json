@@ -1,0 +1,19 @@
+{
+  "name": "@tbh/importer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json --outDir dist",
+    "cli": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@tbh/data-adapters": "workspace:*",
+    "@tbh/db": "workspace:*",
+    "drizzle-orm": "^0.45.4"
+  }
+}
