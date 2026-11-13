@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { BuildError, checkAgainstDataset, getBuildView } from "@tbh/builds";
+import { BuildError, checkAgainstDataset, getBuildView, getInteraction, listComments } from "@tbh/builds";
 import { BuildPage } from "@/components/builds/BuildPage";
 import { gunsmithMessages } from "@/gunsmith/messages";
 import { pickName } from "@/gunsmith/view";
@@ -48,7 +48,11 @@ export default async function BuildRoute({ params, searchParams }: { params: Par
   if (!r) notFound();
   const { view, user } = r;
   const [uiLang, itemLang, active] = await Promise.all([getLocale(), getItemLang(), activeDataset(view.mode)]);
-  const bundle = await getWeaponBundle(view.version.datasetId, view.weaponExtId);
+  const [bundle, interaction, comments] = await Promise.all([
+    getWeaponBundle(view.version.datasetId, view.weaponExtId),
+    getInteraction(db(), user?.id ?? null, view.publicId),
+    listComments(db(), view.publicId, user ? { id: user.id, role: user.role } : null),
+  ]);
 
   // Mit den aktuellen Spieldaten prüfen, falls die Version auf einem älteren Datensatz beruht.
   let current: { valid: boolean; complete: boolean; patch: string | null; problems: string[] } | null = null;
@@ -67,6 +71,8 @@ export default async function BuildRoute({ params, searchParams }: { params: Par
       itemLang={itemLang}
       t={gunsmithMessages[uiLang]}
       viewer={user ? { id: user.id, login: user.login } : null}
+      interaction={interaction}
+      comments={JSON.parse(JSON.stringify(comments))}
       loginUrl={authConfig() ? `/auth/twitch/login?returnTo=${encodeURIComponent(here)}` : null}
       current={current ? { ...current, problems: current.problems.map((id) => pickName(bundle.items[id]?.names, itemLang).short) } : null}
     />

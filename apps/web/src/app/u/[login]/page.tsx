@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublicProfile } from "@tbh/auth";
-import { listDrafts, listUserBuilds } from "@tbh/builds";
+import { listBookmarks, listDrafts, listUserBuilds } from "@tbh/builds";
 import { BuildCards } from "@/components/builds/BuildCards";
 import { gunsmithMessages } from "@/gunsmith/messages";
 import { activeDataset, weaponCards } from "@/lib/gunsmith-server";
@@ -35,13 +35,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ login:
   const [profile, viewer, { locale, t }] = await Promise.all([load(login), currentUser(), getMessages()]);
   if (!profile) notFound();
   const own = viewer?.login === profile.login;
-  const [builds, drafts, ds, itemLang] = await Promise.all([
+  const [builds, drafts, bookmarks, ds, itemLang] = await Promise.all([
     listUserBuilds(db(), profile.id, own),
     own && viewer ? listDrafts(db(), { id: viewer.id, login: viewer.login }) : Promise.resolve([]),
+    own && viewer ? listBookmarks(db(), { id: viewer.id, login: viewer.login }) : Promise.resolve([]),
     activeDataset("pvp"),
     getItemLang(),
   ]);
-  const weapons = ds ? await weaponCards(ds.id, [...builds.map((b) => b.weaponExtId), ...drafts.map((d) => d.weaponExtId)], itemLang) : new Map();
+  const weapons = ds ? await weaponCards(ds.id, [...builds.map((b) => b.weaponExtId), ...drafts.map((d) => d.weaponExtId), ...bookmarks.map((b) => b.weaponExtId)], itemLang) : new Map();
   const g = gunsmithMessages[locale];
   const roleLabel = profile.role === "admin" ? t.role_admin : profile.role === "moderator" ? t.role_moderator : null;
 
@@ -86,6 +87,24 @@ export default async function ProfilePage({ params }: { params: Promise<{ login:
           />
         )}
       </section>
+
+      {own && bookmarks.length > 0 && (
+        <section aria-labelledby="bookmarks" style={{ paddingTop: 40 }}>
+          <h2 id="bookmarks" className="head" style={{ margin: "0 0 16px", fontSize: 32 }}>
+            {t.profile_bookmarks} <span style={{ fontSize: 16, color: "var(--faint)" }}>{t.profile_only_you}</span>
+          </h2>
+          <BuildCards
+            items={bookmarks.map((b) => ({
+              href: `/b/${b.publicId}`,
+              title: b.title,
+              weapon: weapons.get(b.weaponExtId)?.name.short ?? "",
+              img: weapons.get(b.weaponExtId)?.img ?? null,
+              meta: `${g[`purpose_${b.purpose}`]} · Patch ${b.patchLabel ?? "—"} · v${b.latestVersion}`,
+              badge: null,
+            }))}
+          />
+        </section>
+      )}
 
       {own && drafts.length > 0 && (
         <section aria-labelledby="drafts" style={{ paddingTop: 40 }}>

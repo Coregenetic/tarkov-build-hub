@@ -2,6 +2,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
 import { authConfigFromEnv, createRateLimiter, getSessionUser, sessionCookieName, type AuthConfig, type SessionUser } from "@tbh/auth";
+import { recordActivity } from "@tbh/builds";
 import { connect, type DbHandle } from "@tbh/db";
 
 /** Eine Datenbankverbindung je Prozess (auch über Hot-Reloads im Entwickeln hinweg). */
@@ -33,13 +34,27 @@ export function authConfigError(): string | null {
   return configError;
 }
 
+/** Aktive Nutzer je Tag zählen – höchstens einmal je Nutzer, Tag und Prozess in die Datenbank. */
+const seenToday = new Set<string>();
+function noteActivity(userId: number) {
+  const key = `${new Date().toISOString().slice(0, 10)}:${userId}`;
+  if (seenToday.has(key)) return;
+  if (seenToday.size > 50_000) seenToday.clear();
+  seenToday.add(key);
+  recordActivity(db(), userId).catch(() => seenToday.delete(key));
+}
+
 /** Aktueller Nutzer, einmal pro Anfrage ermittelt. */
 export const currentUser = cache(async (): Promise<SessionUser | null> => {
   const config = authConfig();
   if (!config) return null;
   const token = (await cookies()).get(sessionCookieName(config))?.value;
-  return getSessionUser(db(), token, { ttlDays: config.sessionTtlDays });
+  const user = await getSessionUser(db(), token, { ttlDays: config.sessionTtlDays });
+  if (user) noteActivity(user.id);
+  return user;
 });
+
+export const isStaff = (user: SessionUser | null) => user?.role === "moderator" || user?.role === "admin";
 
 /** Client-IP hinter Caddy. Der Dienst ist nur über 127.0.0.1 erreichbar, also kommt der Header vom eigenen Proxy. */
 export async function clientIp(): Promise<string> {

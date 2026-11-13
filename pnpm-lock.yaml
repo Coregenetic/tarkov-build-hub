@@ -47,6 +47,9 @@ importers:
       '@tbh/game-data':
         specifier: workspace:*
         version: link:../../packages/game-data
+      '@tbh/import':
+        specifier: workspace:*
+        version: link:../../packages/import
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(postgres@4.1.1)
@@ -68,12 +71,18 @@ importers:
       '@tbh/compat-engine':
         specifier: workspace:*
         version: link:../../packages/compat-engine
+      '@tbh/data-adapters':
+        specifier: workspace:*
+        version: link:../../packages/data-adapters
       '@tbh/db':
         specifier: workspace:*
         version: link:../../packages/db
       '@tbh/game-data':
         specifier: workspace:*
         version: link:../../packages/game-data
+      '@tbh/import':
+        specifier: workspace:*
+        version: link:../../packages/import
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(postgres@4.1.1)
@@ -90,9 +99,6 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
     devDependencies:
-      '@tbh/data-adapters':
-        specifier: workspace:*
-        version: link:../../packages/data-adapters
       '@types/react':
         specifier: ^19.3.0
         version: 19.3.0
@@ -139,6 +145,9 @@ importers:
       '@tbh/data-adapters':
         specifier: workspace:*
         version: link:../data-adapters
+      '@tbh/import':
+        specifier: workspace:*
+        version: link:../import
 
   packages/compat-engine: {}
 
@@ -172,6 +181,24 @@ importers:
       '@tbh/db':
         specifier: workspace:*
         version: link:../db
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(postgres@4.1.1)
+
+  packages/import:
+    dependencies:
+      '@tbh/compat-engine':
+        specifier: workspace:*
+        version: link:../compat-engine
+      '@tbh/data-adapters':
+        specifier: workspace:*
+        version: link:../data-adapters
+      '@tbh/db':
+        specifier: workspace:*
+        version: link:../db
+      '@tbh/game-data':
+        specifier: workspace:*
+        version: link:../game-data
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(postgres@4.1.1)

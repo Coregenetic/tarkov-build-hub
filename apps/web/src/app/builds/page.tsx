@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PURPOSES, SORTS, parseSearchParams, searchBuilds, searchFacets, toSearchParams, type SearchFilters } from "@tbh/builds";
+import { PURPOSES, SORTS, parseSearchParams, recordSearchMiss, searchBuilds, searchFacets, toSearchParams, type SearchFilters } from "@tbh/builds";
 import { BuildCards } from "@/components/builds/BuildCards";
 import { cardsFromHits } from "@/lib/discovery";
 import { getItemLang, getMessages } from "@/lib/i18n";
@@ -30,6 +30,8 @@ export default async function BuildsPage({ searchParams }: { searchParams: Searc
   const f = parseSearchParams(await searchParams);
   const [{ locale, t }, itemLang, ds] = await Promise.all([getMessages(), getItemLang(), activeDataset(f.mode)]);
   const [result, facets] = await Promise.all([searchBuilds(db(), f, ds?.id ?? null), searchFacets(db(), f.mode)]);
+  // Suchbegriffe ohne Treffer zählen (nur der Begriff, keine Person) – zeigt, was Leute erwarten.
+  if (f.q && result.total === 0 && f.page === 1) recordSearchMiss(db(), f.q).catch(() => undefined);
   const [cards, weaponNames, calibers] = await Promise.all([
     cardsFromHits(result.hits, ds?.id ?? null, itemLang, locale, t),
     ds ? weaponCards(ds.id, [...facets.weapons.map((w) => w.value), ...(f.part ? [f.part] : [])], itemLang) : Promise.resolve(new Map()),

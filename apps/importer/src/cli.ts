@@ -12,8 +12,8 @@ import {
   ImportRefusedError,
   listDatasets,
   rollbackDataset,
-} from "./service.ts";
-import { verifyPresets } from "./verify.ts";
+} from "@tbh/import";
+import { verifyPresets } from "@tbh/import";
 
 const HELP = `Tarkov Build Hub – Verwaltung
 

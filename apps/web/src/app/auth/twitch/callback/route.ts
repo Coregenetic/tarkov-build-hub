@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { AuthError, createSessionForIdentity, loginCookieName, sessionCookieName, verifyCallback } from "@tbh/auth";
+import { AuthError, createSessionForIdentity, deleteSession, loginCookieName, sessionCookieName, verifyCallback } from "@tbh/auth";
+import { bump } from "@tbh/builds";
 import { authConfig, authRateLimiter, baseUrl, clientIp, db } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,9 @@ export async function GET(request: NextRequest) {
       ttlDays: config.sessionTtlDays,
       userAgent: request.headers.get("user-agent"),
     });
+    // Eine vorherige Sitzung in diesem Browser (z. B. bei erneuter Bestätigung) sofort beenden.
+    await deleteSession(db(), request.cookies.get(sessionCookieName(config))?.value);
+    await bump(db(), "logins").catch(() => undefined);
     const response = NextResponse.redirect(new URL(returnTo, baseUrl(request)), 303);
     response.cookies.delete(loginCookieName(config));
     response.cookies.set(sessionCookieName(config), token, {

@@ -41,7 +41,11 @@ export interface LoginStart {
 }
 
 /** Schritt 1: Weiterleitung zu Twitch vorbereiten. Nur Scope "openid" – keine weiteren Rechte am Konto. */
-export function startLogin(config: AuthConfig, returnTo: string | null | undefined, now = Date.now()): LoginStart {
+/**
+ * Startet die Anmeldung. `forceVerify` lässt Twitch die Anmeldung erneut bestätigen
+ * (für Admin-Aktionen, die eine frische Sitzung verlangen).
+ */
+export function startLogin(config: AuthConfig, returnTo: string | null | undefined, now = Date.now(), options: { forceVerify?: boolean } = {}): LoginStart {
   const payload: LoginState = { state: randomToken(24), nonce: randomToken(24), returnTo: safeReturnTo(returnTo), iat: now };
   const url = new URL(config.endpoints.authorizeUrl);
   url.searchParams.set("response_type", "code");
@@ -50,6 +54,7 @@ export function startLogin(config: AuthConfig, returnTo: string | null | undefin
   url.searchParams.set("scope", "openid");
   url.searchParams.set("state", payload.state);
   url.searchParams.set("nonce", payload.nonce);
+  if (options.forceVerify) url.searchParams.set("force_verify", "true");
   return {
     redirectUrl: url.toString(),
     cookieValue: sign(payload, config.secret),

@@ -2,7 +2,8 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { BuildError, InputError, type Actor } from "@tbh/builds";
 import { createRateLimiter } from "@tbh/auth";
-import { baseUrl, clientIp, currentUser } from "./server";
+import { baseUrl, clientIp, currentUser, isStaff } from "./server";
+import { siteSettings } from "./site";
 
 /** Grobe Bremse gegen automatisierte Anfragen (zusätzlich zu den Grenzen im Build-Dienst). */
 const limiter = createRateLimiter({ windowMs: 60_000, max: 120 });
@@ -25,7 +26,7 @@ const STATUS: Record<BuildError["code"], number> = {
  * Hülle für JSON-Routen, die einen angemeldeten Nutzer brauchen:
  * Herkunft prüfen (gegen fremde Seiten), Sitzung prüfen, Fehler einheitlich beantworten.
  */
-export async function withUser(request: NextRequest, handler: (actor: Actor) => Promise<unknown>): Promise<NextResponse> {
+export async function withUser(request: NextRequest, handler: (actor: Actor & { sessionStartedAt?: Date | undefined }) => Promise<unknown>): Promise<NextResponse> {
   const origin = request.headers.get("origin");
   if (!origin || origin !== new URL(baseUrl(request)).origin) {
     return NextResponse.json({ error: "forbidden", message: "Ungültige Herkunft." }, { status: 403 });
@@ -35,8 +36,11 @@ export async function withUser(request: NextRequest, handler: (actor: Actor) => 
   }
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "unauthorized", message: "Bitte mit Twitch anmelden." }, { status: 401 });
+  if ((await siteSettings()).maintenance.enabled && !isStaff(user)) {
+    return NextResponse.json({ error: "maintenance", message: "Wartung – bitte gleich noch einmal versuchen." }, { status: 503 });
+  }
   try {
-    const result = await handler({ id: user.id, login: user.login });
+    const result = await handler({ id: user.id, login: user.login, sessionStartedAt: user.sessionStartedAt });
     return NextResponse.json(result ?? { ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof InputError) return NextResponse.json({ error: "invalid_input", message: error.message, field: error.field ?? null }, { status: 400 });

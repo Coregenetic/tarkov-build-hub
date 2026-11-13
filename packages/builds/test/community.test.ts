@@ -7,7 +7,7 @@ import { fetchTarkovDevDataset } from "@tbh/data-adapters";
 import { appUser, auditLog, build, connect, userSession, type DbHandle } from "@tbh/db";
 import { resetTestDatabase } from "@tbh/db/testing";
 import { gameDataFromNormalized, loadGameData } from "@tbh/game-data";
-import { activateDataset, importDataset } from "../../../apps/importer/src/service.ts";
+import { activateDataset, importDataset } from "@tbh/import";
 import {
   addComment,
   banUserFor,
@@ -114,6 +114,9 @@ describe.skipIf(!url)("Community und Moderation", () => {
     await expect(editComment(handle.db, carol, id, "fremd")).rejects.toMatchObject({ code: "not_found" });
     await expect(editComment(handle.db, bob, id, "spät", new Date(Date.now() + 16 * 60_000))).rejects.toMatchObject({ code: "forbidden" });
     await editComment(handle.db, bob, id, "Sauberer Build, danke.");
+    const second = await addComment(handle.db, carol, buildId, "Gleich wieder weg.");
+    await expect(deleteOwnComment(handle.db, bob, second.id)).rejects.toMatchObject({ code: "not_found" });
+    await deleteOwnComment(handle.db, carol, second.id);
     expect((await getBuildView(handle.db, buildId, null)).publicId).toBe(buildId);
     const [b] = await handle.db.select({ n: build.commentCount }).from(build).where(eq(build.publicId, buildId));
     expect(b!.n).toBe(1);
@@ -205,7 +208,7 @@ describe.skipIf(!url)("Community und Moderation", () => {
   it("zählt Statistik nur als Summen", async () => {
     const s = await statsOverview(handle.db, 7);
     expect(s.days).toHaveLength(7);
-    expect(s.totals).toMatchObject({ comments: 1, likes: 2, reports: 2 });
+    expect(s.totals).toMatchObject({ comments: 2, likes: 2, reports: 2 }); // geschriebene Kommentare, auch später gelöschte
     const [{ n }] = (await handle.db.execute(sql`SELECT count(*)::int AS n FROM information_schema.columns WHERE table_name IN ('daily_counter','user_activity_day','search_miss') AND column_name ILIKE '%ip%'`)) as unknown as [{ n: number }];
     expect(n).toBe(0);
   });

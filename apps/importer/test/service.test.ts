@@ -18,7 +18,7 @@ import {
   type DbHandle,
 } from "@tbh/db";
 import { resetTestDatabase } from "@tbh/db/testing";
-import { activateDataset, discardDataset, importDataset, ImportRefusedError, listDatasets, rollbackDataset } from "../src/service.ts";
+import { activateDataset, discardDataset, importDataset, ImportRefusedError, listDatasets, rollbackDataset } from "@tbh/import";
 
 /**
  * Läuft gegen eine echte PostgreSQL (TEST_DATABASE_URL, siehe scripts/test-db.sh).

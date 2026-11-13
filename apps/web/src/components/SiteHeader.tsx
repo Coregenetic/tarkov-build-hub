@@ -21,6 +21,11 @@ export function SiteHeader({ user, t, loginEnabled, path }: { user: SessionUser 
           </Link>
         </nav>
         <span className="site-spacer" style={{ flex: 1 }} />
+        {(user?.role === "moderator" || user?.role === "admin") && (
+          <Link href="/admin" style={{ color: path.startsWith("/admin") ? "var(--ink)" : "var(--accent)", fontSize: 14, fontWeight: 600 }}>
+            {t.nav_admin}
+          </Link>
+        )}
         <Link href={`/einstellungen?back=${encodeURIComponent(path)}`} style={{ color: path.startsWith("/einstellungen") ? "var(--ink)" : "var(--muted)", fontSize: 14 }}>
           {t.nav_settings}
         </Link>

@@ -102,6 +102,12 @@ const messages = {
     footer_data: "Spieldaten und Bilder: tarkov.dev",
     language: "English",
     nav_settings: "Einstellungen",
+    nav_admin: "Admin",
+    maintenance_title: "Wartung",
+    maintenance_text: "Build Hub wird gerade aktualisiert, zum Beispiel mit neuen Spieldaten. Bitte schau gleich noch einmal vorbei.",
+    maintenance_staff: "Wartungsmodus ist aktiv – Besucher sehen eine Wartungsseite.",
+    profile_bookmarks: "Gemerkt",
+    profile_only_you: "nur für dich sichtbar",
   },
   en: {
     nav_discover: "Discover",
@@ -196,6 +202,12 @@ const messages = {
     footer_data: "Game data and images: tarkov.dev",
     language: "Deutsch",
     nav_settings: "Settings",
+    nav_admin: "Admin",
+    maintenance_title: "Maintenance",
+    maintenance_text: "Build Hub is being updated right now, for example with new game data. Please check back shortly.",
+    maintenance_staff: "Maintenance mode is on – visitors see a maintenance page.",
+    profile_bookmarks: "Saved",
+    profile_only_you: "only visible to you",
   },
 } as const;
 

@@ -9,7 +9,7 @@ import { fetchTarkovDevDataset } from "@tbh/data-adapters";
 import { build, buildVersion, connect, type DbHandle } from "@tbh/db";
 import { resetTestDatabase } from "@tbh/db/testing";
 import { startFakeTwitchServer, type FakeTwitchServer } from "../../../packages/auth/test/fake-twitch-server.ts";
-import { activateDataset, importDataset } from "../../importer/src/service.ts";
+import { activateDataset, importDataset } from "@tbh/import";
 
 /**
  * Ende-zu-Ende: anmelden, bauen, veröffentlichen, Build-Seite, Variante – gegen die gebaute App,

@@ -7,7 +7,7 @@ import { fetchTarkovDevDataset } from "@tbh/data-adapters";
 import { appUser, build, connect, type DbHandle } from "@tbh/db";
 import { resetTestDatabase } from "@tbh/db/testing";
 import { gameDataFromNormalized, loadGameData } from "@tbh/game-data";
-import { activateDataset, importDataset } from "../../../apps/importer/src/service.ts";
+import { activateDataset, importDataset } from "@tbh/import";
 import { parseSearchParams, publishDraft, saveDraft, searchBuilds, searchFacets, setVisibility, startFork, toSearchParams, type Actor, type Deps } from "../src/index.ts";
 
 /** Echte Daten (M4A1-Ausschnitt, json.tarkov.dev 13.11.2026) gegen echte PostgreSQL. */

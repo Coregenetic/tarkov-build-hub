@@ -15,8 +15,10 @@
     "@tbh/auth": "workspace:*",
     "@tbh/builds": "workspace:*",
     "@tbh/compat-engine": "workspace:*",
+    "@tbh/data-adapters": "workspace:*",
     "@tbh/db": "workspace:*",
     "@tbh/game-data": "workspace:*",
+    "@tbh/import": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "next": "^16.4.6",
     "react": "^19.3.1",
@@ -24,7 +26,6 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
-    "@tbh/data-adapters": "workspace:*",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "playwright-core": "^1.65.0"

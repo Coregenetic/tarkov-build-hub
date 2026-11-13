@@ -12,6 +12,7 @@ import { layoutBuild } from "@/gunsmith/layout";
 import type { GunsmithMessages } from "@/gunsmith/messages";
 import type { Lang, WeaponBundle } from "@/gunsmith/types";
 import { formatNumber, percent, pickName, rubles, slotLabel } from "@/gunsmith/view";
+import { Comments, Reactions, ReportButton, type SerializedComment } from "./Community";
 
 export interface SerializedView {
   publicId: string;
@@ -48,6 +49,8 @@ interface Props {
   viewer: { id: number; login: string } | null;
   loginUrl: string | null;
   current: { valid: boolean; patch: string | null; problems: string[] } | null;
+  interaction: { liked: boolean; bookmarked: boolean; likeCount: number; commentCount: number };
+  comments: SerializedComment[];
 }
 
 async function post(url: string, method: string, body?: unknown): Promise<Record<string, unknown>> {
@@ -57,7 +60,7 @@ async function post(url: string, method: string, body?: unknown): Promise<Record
   return json;
 }
 
-export function BuildPage({ view, bundle, uiLang, itemLang, t, viewer, loginUrl, current }: Props) {
+export function BuildPage({ view, bundle, uiLang, itemLang, t, viewer, loginUrl, current, interaction, comments }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -157,6 +160,7 @@ export function BuildPage({ view, bundle, uiLang, itemLang, t, viewer, loginUrl,
             </div>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {view.status === "published" && <Reactions publicId={view.publicId} t={t} loggedIn={!!viewer} own={own} loginUrl={loginUrl} initial={interaction} />}
             {viewer ? (
               <button type="button" className="btn btn-primary" onClick={fork} disabled={busy}>
                 {t.b_fork}
@@ -181,6 +185,7 @@ export function BuildPage({ view, bundle, uiLang, itemLang, t, viewer, loginUrl,
             >
               <span aria-live="polite">{copied ? t.b_copied : t.b_share}</span>
             </button>
+            {viewer && !own && view.status === "published" && <ReportButton targetType="build" target={view.publicId} t={t} />}
             {own && isLatest && (
               <>
                 <button type="button" className="btn" onClick={edit} disabled={busy}>
@@ -270,6 +275,7 @@ export function BuildPage({ view, bundle, uiLang, itemLang, t, viewer, loginUrl,
               ))}
             </ul>
           </section>
+          {view.status === "published" && <Comments publicId={view.publicId} t={t} uiLang={uiLang} loggedIn={!!viewer} loginUrl={loginUrl} viewerId={viewer?.id ?? null} initial={comments} />}
         </div>
         <aside style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: 20 }}>
           {view.forkedFrom && (

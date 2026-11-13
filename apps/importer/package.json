@@ -17,6 +17,7 @@
     "@tbh/data-adapters": "workspace:*",
     "@tbh/db": "workspace:*",
     "@tbh/game-data": "workspace:*",
+    "@tbh/import": "workspace:*",
     "drizzle-orm": "^0.45.4"
   }
 }

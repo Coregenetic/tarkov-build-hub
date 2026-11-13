@@ -7,7 +7,7 @@ import { fetchTarkovDevDataset } from "@tbh/data-adapters";
 import { appUser, buildVersion, connect, type DbHandle } from "@tbh/db";
 import { resetTestDatabase } from "@tbh/db/testing";
 import { gameDataFromNormalized, loadGameData } from "@tbh/game-data";
-import { activateDataset, importDataset } from "../../../apps/importer/src/service.ts";
+import { activateDataset, importDataset } from "@tbh/import";
 import {
   BuildError,
   deleteOwnBuild,

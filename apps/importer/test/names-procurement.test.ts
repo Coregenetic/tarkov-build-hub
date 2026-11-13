@@ -6,7 +6,7 @@ import { fetchTarkovDevDataset } from "@tbh/data-adapters";
 import { auditLog, connect, type DbHandle } from "@tbh/db";
 import { resetTestDatabase } from "@tbh/db/testing";
 import { loadDisplayNames, loadProcurementData, removeNameOverride, setNameOverride, summarizeProcurement } from "@tbh/game-data";
-import { activateDataset, importDataset } from "../src/service.ts";
+import { activateDataset, importDataset } from "@tbh/import";
 
 const url = process.env["TEST_DATABASE_URL"];
 const fixtureDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "packages", "data-adapters", "test", "fixtures", "m4a1");
