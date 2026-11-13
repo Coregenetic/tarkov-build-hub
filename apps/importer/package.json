@@ -13,7 +13,9 @@
   },
   "dependencies": {
     "@tbh/data-adapters": "workspace:*",
+    "@tbh/compat-engine": "workspace:*",
     "@tbh/db": "workspace:*",
+    "@tbh/game-data": "workspace:*",
     "drizzle-orm": "^0.45.4"
   }
 }

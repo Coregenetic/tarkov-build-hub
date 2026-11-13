@@ -1,0 +1,14 @@
+{
+  "name": "@tbh/compat-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Kompatibilitätsprüfung für Waffenbuilds – ohne Abhängigkeiten, läuft im Browser und auf dem Server.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json --outDir dist"
+  }
+}

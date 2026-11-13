@@ -32,15 +32,23 @@ importers:
 
   apps/importer:
     dependencies:
+      '@tbh/compat-engine':
+        specifier: workspace:*
+        version: link:../../packages/compat-engine
       '@tbh/data-adapters':
         specifier: workspace:*
         version: link:../../packages/data-adapters
       '@tbh/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@tbh/game-data':
+        specifier: workspace:*
+        version: link:../../packages/game-data
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(postgres@4.1.1)
+
+  packages/compat-engine: {}
 
   packages/data-adapters:
     dependencies:
@@ -60,6 +68,21 @@ importers:
       drizzle-kit:
         specifier: ^0.31.11
         version: 0.31.11
+
+  packages/game-data:
+    dependencies:
+      '@tbh/compat-engine':
+        specifier: workspace:*
+        version: link:../compat-engine
+      '@tbh/data-adapters':
+        specifier: workspace:*
+        version: link:../data-adapters
+      '@tbh/db':
+        specifier: workspace:*
+        version: link:../db
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(postgres@4.1.1)
 
 packages:
 

@@ -41,7 +41,7 @@ describe.skipIf(!url)("Import-Dienst gegen PostgreSQL", () => {
   it("legt einen Import als Vorschau mit allen Beziehungen an", async () => {
     const { db } = handle;
     const { datasetId, report } = await importDataset(db, fixture, { actor, thresholds });
-    expect(report.itemCount).toBe(18);
+    expect(report.itemCount).toBe(19);
 
     const [ds] = await db.select().from(itemDataset).where(eq(itemDataset.id, datasetId));
     expect(ds!.status).toBe("preview");
@@ -91,7 +91,7 @@ describe.skipIf(!url)("Import-Dienst gegen PostgreSQL", () => {
 
     // Archivierte Datensätze behalten ihre Items, damit alte Builds lesbar bleiben.
     const [{ count }] = (await db.execute(sql`SELECT count(*)::int AS count FROM item WHERE dataset_id = ${second.datasetId}`)) as unknown as [{ count: number }];
-    expect(count).toBe(18);
+    expect(count).toBe(19);
   });
 
   it("erlaubt nie zwei aktive Datensätze im selben Modus", async () => {

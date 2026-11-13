@@ -11,6 +11,7 @@ import {
   listDatasets,
   rollbackDataset,
 } from "./service.js";
+import { verifyPresets } from "./verify.js";
 
 const HELP = `Tarkov Build Hub – Spieldaten-Import
 
@@ -22,6 +23,7 @@ Befehle:
   activate <id> --patch BEZEICHNUNG  Vorschau freigeben; bisher aktiver wird archiviert
   discard  <id>                      Vorschau verwerfen
   rollback --mode pvp|pve            Zum vorherigen Datensatz zurückkehren
+  verify-presets <id>                Alle Presets mit der Kompatibilitäts-Engine prüfen
 
 Umgebung: DATABASE_URL (Pflicht), TARKOV_DEV_BASE_URL, TBH_ACTOR`;
 
@@ -108,6 +110,21 @@ async function main(argv: string[]): Promise<void> {
       case "rollback": {
         const result = await rollbackDataset(db, parseMode(values.mode), actor);
         console.log(`Zurückgerollt: #${result.from} archiviert, #${result.to} wieder aktiv.`);
+        break;
+      }
+      case "verify-presets": {
+        const id = parseId(arg);
+        const r = await verifyPresets(db, id);
+        console.log(
+          `Datensatz #${id}: ${r.total} Waffen-Presets · ${r.valid} gültig · ${r.complete} vollständig · ` +
+            `${r.fullyAssembled} vollständig zusammengesetzt · ${r.problems.length} auffällig`,
+        );
+        console.log(`  (${r.ammoRounds} Patronen in Magazinen nicht mitgezählt, ${r.skippedNonWeapon} Nicht-Waffen-Presets übersprungen)`);
+        for (const p of r.problems) {
+          const codes = p.issues.map((i) => `${i.code}${i.slotNameId ? `(${i.slotNameId})` : ""}`).join(", ");
+          console.log(`  ${p.presetId}  ${p.name ?? "?"}  gültig=${p.valid}  übrig=${p.leftover.length}  ${codes}`);
+        }
+        if (r.problems.length > 0) process.exitCode = 2;
         break;
       }
       default:

@@ -1,0 +1,20 @@
+{
+  "name": "@tbh/game-data",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Lädt einen Datensatz als GameData für die Kompatibilitäts-Engine.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json --outDir dist"
+  },
+  "dependencies": {
+    "@tbh/compat-engine": "workspace:*",
+    "@tbh/data-adapters": "workspace:*",
+    "@tbh/db": "workspace:*",
+    "drizzle-orm": "^0.45.4"
+  }
+}

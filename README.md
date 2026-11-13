@@ -9,15 +9,17 @@ Fan-Projekt, nicht mit Battlestate Games verbunden. Spieldaten und Bilder stamme
 | Phase | Inhalt | Status |
 | --- | --- | --- |
 | 0 | Server-Inventur, Architektur, Design-Richtung | erledigt |
-| 1 | Datenfundament: versionierte Spieldaten, Import mit Vorschau, Freigabe und Rückweg | **in Arbeit** |
-| 2 | Kompatibilitäts-Engine | offen |
+| 1 | Datenfundament: versionierte Spieldaten, Import mit Vorschau, Freigabe und Rückweg | erledigt (Server-Betrieb folgt mit Deployment) |
+| 2 | Kompatibilitäts-Engine, geprüft an allen 401 Waffen-Presets | erledigt |
 | 3 | Twitch-Login, Profile, Rollen | offen |
 | 4–9 | Gunsmith, Veröffentlichen, Discovery, Community, Go-live | offen |
 
 ## Aufbau
 
 ```
-apps/importer          CLI: Spieldaten abrufen, prüfen, freigeben, zurückrollen
+apps/importer          CLI: Spieldaten abrufen, prüfen, freigeben, zurückrollen, Presets verifizieren
+packages/compat-engine Kompatibilitätsprüfung ohne Abhängigkeiten (Browser + Server)
+packages/game-data     Lädt einen Datensatz als Eingabe für die Engine
 packages/data-adapters Adapter für json.tarkov.dev + Normalisierung + Prüfbericht
 packages/db            PostgreSQL-Schema (Drizzle) und Migrationen
 scripts/test-db.sh     Wegwerf-PostgreSQL für lokale Tests
@@ -38,18 +40,20 @@ pnpm check                      # Lint, Typprüfung, Tests, Build
 Integrationstests gegen PostgreSQL laufen nur, wenn `TEST_DATABASE_URL` gesetzt ist:
 
 ```bash
-export TEST_DATABASE_URL=$(scripts/test-db.sh start)
+scripts/test-db.sh start
+export TEST_DATABASE_URL=$(scripts/test-db.sh test-url)
 pnpm test
 scripts/test-db.sh stop
 ```
 
 ## Spieldaten importieren
 
-Siehe [docs/datenimport.md](docs/datenimport.md).
+Siehe [docs/datenimport.md](docs/datenimport.md) und [docs/kompatibilitaet.md](docs/kompatibilitaet.md).
 
 ```bash
 pnpm importer import --mode pvp           # legt eine Vorschau an
 pnpm importer list
 pnpm importer activate <id> --patch 0.16.9
 pnpm importer rollback --mode pvp
+pnpm importer verify-presets <id>         # Engine gegen alle Waffen-Presets prüfen
 ```

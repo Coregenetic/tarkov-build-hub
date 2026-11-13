@@ -12,6 +12,7 @@ import {
 
 /**
  * Fixture = unveränderter Ausschnitt aus json.tarkov.dev (regular, Stand 13.11.2026):
+ * (plus AR-15 Colt M16A2 handguard als echter Konfliktfall zum 370-mm-Lauf)
  * Colt M4A1, sein Standard-Preset, dessen Teile sowie SureFire SF3P,
  * SOCOM556-MINI MONSTER, Daniel Defense WAVE und WAVE QD.
  */
@@ -44,7 +45,7 @@ describe("normalizeTarkovDev", () => {
   it("übernimmt alle Items des Ausschnitts ohne Ablehnung", async () => {
     const { dataset, rejected } = await normalizeFixture();
     expect(rejected).toEqual([]);
-    expect(dataset.items).toHaveLength(18);
+    expect(dataset.items).toHaveLength(19);
     expect(dataset.mode).toBe("pvp");
   });
 
@@ -130,7 +131,7 @@ describe("fetchTarkovDevDataset", () => {
     ]);
     expect(a.checksum).toBe(b.checksum);
     expect(a.checksum).toMatch(/^[0-9a-f]{64}$/);
-    expect(a.dataset.items).toHaveLength(18);
+    expect(a.dataset.items).toHaveLength(19);
   });
 
   it("nutzt für PvE den eigenen Pfad und meldet HTTP-Fehler klar", async () => {
@@ -146,7 +147,7 @@ describe("validateDataset", () => {
   it("erkennt einen unvollständigen Abruf als Fehler", async () => {
     const { dataset } = await normalizeFixture();
     const report = validateDataset(dataset, 0);
-    expect(report.itemCount).toBe(18);
+    expect(report.itemCount).toBe(19);
     expect(report.errors.some((e) => e.includes("Abruf vermutlich unvollständig"))).toBe(true);
   });
 
