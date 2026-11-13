@@ -4,6 +4,7 @@ import { appUser, auditLog, connect, userSession, type DbHandle } from "@tbh/db"
 import { resetTestDatabase } from "@tbh/db/testing";
 import {
   AuthError,
+  authConfigFromEnv,
   banUser,
   createRateLimiter,
   createSessionForIdentity,
@@ -31,6 +32,19 @@ describe("safeReturnTo", () => {
     ["/" + "a".repeat(600), "/"],
   ])("%s → %s", (input, expected) => {
     expect(safeReturnTo(input)).toBe(expected);
+  });
+});
+
+describe("Login-Konfiguration", () => {
+  const env = { TWITCH_CLIENT_ID: "abc", TWITCH_CLIENT_SECRET: "def", PUBLIC_BASE_URL: "https://builds.example.de", AUTH_SECRET: "x".repeat(40) };
+  it("akzeptiert eine vollständige Konfiguration mit sicheren Cookies bei https", () => {
+    const c = authConfigFromEnv(env);
+    expect(c.secureCookies).toBe(true);
+    expect(c.redirectUri).toBe("https://builds.example.de/auth/twitch/callback");
+  });
+  it("behandelt Platzhalter aus der Vorlage als nicht eingerichtet", () => {
+    expect(() => authConfigFromEnv({ ...env, TWITCH_CLIENT_ID: "CHANGE_ME" })).toThrow(/Platzhalter/);
+    expect(() => authConfigFromEnv({ ...env, AUTH_SECRET: "CHANGE_ME_TO_A_LONG_RANDOM_VALUE_xxxxxxxx" })).toThrow(/Platzhalter/);
   });
 });
 

@@ -1,0 +1,32 @@
+# Eigene Caddy-Instanz für den Build Hub. Werte kommen aus /opt/tarkov-build-hub/caddy/caddy.env.
+{
+	# Keine Admin-Schnittstelle: kein Konflikt mit Port 2019 der bestehenden Instanzen.
+	admin off
+	# Nur auf der zugewiesenen Adresse lauschen – nie auf allen Adressen.
+	default_bind {$TBH_BIND}
+	http_port {$TBH_HTTP_PORT}
+	https_port {$TBH_HTTPS_PORT}
+	email {$TBH_ACME_EMAIL}
+	servers {
+		protocols h1 h2
+	}
+}
+
+{$TBH_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3002 {
+		header_up X-Forwarded-For {remote_host}
+	}
+	log {
+		output file /opt/tarkov-build-hub/caddy/logs/access.log {
+			roll_size 20MiB
+			roll_keep 5
+		}
+		# IP-Adressen nicht dauerhaft speichern.
+		format filter {
+			request>remote_ip ip_mask 16 32
+			request>client_ip ip_mask 16 32
+			request>headers>Cookie delete
+		}
+	}
+}

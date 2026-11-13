@@ -6,6 +6,7 @@ import type { GunsmithMessages } from "@/gunsmith/messages";
 import type { Lang, WeaponBundle } from "@/gunsmith/types";
 import { issueText, pickName } from "@/gunsmith/view";
 import s from "./gunsmith.module.css";
+import { SITE_TZ } from "@/lib/time";
 
 export const PURPOSES = ["allround", "cqb", "long_range", "silent", "budget"] as const;
 export type Purpose = (typeof PURPOSES)[number];
@@ -159,7 +160,7 @@ export function PublishDialog({ bundle, lang, t, initial, checks, provenance, pa
                   {bundle.patch ?? "—"} · {bundle.mode.toUpperCase()}
                 </dd>
                 <dt style={{ color: "var(--faint)" }}>{t.data_as_of}</dt>
-                <dd style={{ margin: 0 }}>{new Date(bundle.dataAsOf).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB")}</dd>
+                <dd style={{ margin: 0 }}>{new Date(bundle.dataAsOf).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB", { timeZone: SITE_TZ })}</dd>
                 <dt style={{ color: "var(--faint)" }}>{t.parts}</dt>
                 <dd className="num" style={{ margin: 0 }}>
                   {partCount}

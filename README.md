@@ -17,13 +17,14 @@ Fan-Projekt, nicht mit Battlestate Games verbunden. Spieldaten und Bilder stamme
 | 6 | Veröffentlichen mit Server-Prüfung, unveränderliche Versionen je Patch, Varianten mit Herkunft, Entwürfe im Konto, Build-Seite, Profil | erledigt |
 | 7 | Startseite mit Feed, Suche und Filter (Text in beiden Sprachen, Waffe, Kaliber, Zweck, Budget, Patch, Ersteller, Teil), Sortierung, Sitemap | erledigt |
 | 8 | Community (Gefällt mir, Merken, Kommentare, Melden) und Admin-Bereich: Übersicht, Statistiken ohne Tracking, Item-Namen, Datenimport, Builds, Meldungen, Nutzer, Protokoll mit CSV, Banner und Wartungsmodus | erledigt |
-| 9 | Härtung und Go-live auf dem Server | offen |
+| 9 | Härtung (Inhaltsrichtlinie mit Nonce, HSTS, Zeitzone), Release-Paket, Betriebsdateien (systemd, eigene Caddy-Instanz, Sicherung, Pflege) | vorbereitet und getestet – Einrichtung auf dem Server folgt mit Freigabe |
 
 ## Aufbau
 
 ```
 apps/web               Next.js-Anwendung (Seiten, Login, Profile)
-apps/importer          Verwaltungs-CLI: Spieldaten, Presets prüfen, Rollen und Sperren
+apps/importer          Verwaltungs-CLI: Spieldaten, Presets prüfen, Rollen und Sperren, Pflege
+deploy/                Server: systemd-Einheiten, eigene Caddy-Instanz, Installation, Ausrollen, Rückweg, Inventur
 packages/auth          Twitch-Login (OIDC) und Sitzungen
 packages/compat-engine Kompatibilitätsprüfung ohne Abhängigkeiten (Browser + Server)
 packages/game-data     Lädt einen Datensatz als Eingabe für die Engine
@@ -56,7 +57,7 @@ scripts/test-db.sh stop
 
 ## Spieldaten importieren
 
-Siehe [docs/datenimport.md](docs/datenimport.md), [docs/kompatibilitaet.md](docs/kompatibilitaet.md), [docs/anmeldung.md](docs/anmeldung.md) und [docs/admin.md](docs/admin.md).
+Siehe [docs/datenimport.md](docs/datenimport.md), [docs/kompatibilitaet.md](docs/kompatibilitaet.md), [docs/anmeldung.md](docs/anmeldung.md), [docs/admin.md](docs/admin.md) und [docs/betrieb.md](docs/betrieb.md).
 
 ```bash
 pnpm importer import --mode pvp           # legt eine Vorschau an

@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
+import { SITE_TZ } from "@/lib/time";
 
 export type Locale = "de" | "en";
 export const LOCALES: readonly Locale[] = ["de", "en"];
@@ -238,5 +239,5 @@ export async function getItemLang(): Promise<Locale> {
 }
 
 export function formatDate(date: Date, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: SITE_TZ }).format(date);
 }

@@ -4,6 +4,7 @@ import { and, count, eq, inArray } from "drizzle-orm";
 import type { Staff } from "@tbh/builds";
 import { build, report } from "@tbh/db";
 import { currentUser, db, isStaff } from "./server";
+import { SITE_TZ } from "./time";
 
 export interface StaffContext {
   staff: Staff;
@@ -44,8 +45,8 @@ export async function buildCounts(): Promise<{ published: number; hidden: number
   return { published: pub?.n ?? 0, hidden: hid?.n ?? 0 };
 }
 
-const dateTime = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Berlin" });
-const dateOnly = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeZone: "Europe/Berlin" });
+const dateTime = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short", timeZone: SITE_TZ });
+const dateOnly = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeZone: SITE_TZ });
 
 export const fmtDateTime = (d: Date | null | undefined) => (d ? dateTime.format(d) : "–");
 export const fmtDate = (d: Date | null | undefined) => (d ? dateOnly.format(d) : "–");

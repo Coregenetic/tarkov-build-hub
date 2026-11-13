@@ -30,11 +30,14 @@ export interface AuthConfig {
   fetchImpl: typeof fetch;
 }
 
+/** Platzhalter aus der Vorlage (CHANGE_ME…) gelten als „nicht eingerichtet“ – der Login bleibt dann aus. */
+const filled = (name: string) => z.string().min(1, `${name} fehlt`).refine((v) => !v.startsWith("CHANGE_ME"), `${name} ist noch der Platzhalter aus der Vorlage`);
+
 const envSchema = z.object({
-  TWITCH_CLIENT_ID: z.string().min(1, "TWITCH_CLIENT_ID fehlt"),
-  TWITCH_CLIENT_SECRET: z.string().min(1, "TWITCH_CLIENT_SECRET fehlt"),
+  TWITCH_CLIENT_ID: filled("TWITCH_CLIENT_ID"),
+  TWITCH_CLIENT_SECRET: filled("TWITCH_CLIENT_SECRET"),
   PUBLIC_BASE_URL: z.url("PUBLIC_BASE_URL muss eine vollständige URL sein"),
-  AUTH_SECRET: z.string().min(32, "AUTH_SECRET muss mindestens 32 Zeichen haben"),
+  AUTH_SECRET: z.string().min(32, "AUTH_SECRET muss mindestens 32 Zeichen haben").refine((v) => !v.startsWith("CHANGE_ME"), "AUTH_SECRET ist noch der Platzhalter aus der Vorlage"),
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   /** Nur für automatisierte Tests: Twitch-Endpunkte auf einen lokalen Nachbau umleiten. */
   TWITCH_TEST_ENDPOINT_BASE: z.string().optional(),

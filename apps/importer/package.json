@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tbh/auth": "workspace:*",
+    "@tbh/builds": "workspace:*",
     "@tbh/compat-engine": "workspace:*",
     "@tbh/data-adapters": "workspace:*",
     "@tbh/db": "workspace:*",

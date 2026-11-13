@@ -1,0 +1,41 @@
+# Tarkov Build Hub – Web-Anwendung (Next.js). Lauscht nur auf 127.0.0.1:3002.
+# Eigener Dienst, eigener Nutzer, eigene Node-Laufzeit – unabhängig von allen anderen Diensten.
+[Unit]
+Description=Tarkov Build Hub (Web)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tbh
+Group=tbh
+WorkingDirectory=/opt/tarkov-build-hub/current/web/apps/web
+EnvironmentFile=/opt/tarkov-build-hub/shared/.env
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3002
+Environment=NEXT_TELEMETRY_DISABLED=1
+ExecStart=/opt/tarkov-build-hub/runtime/node/bin/node server.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+MemoryMax=1G
+
+# Härtung: kein Zugriff auf /home, /etc nur lesend, eigenes /tmp, keine neuen Rechte.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+ReadWritePaths=/opt/tarkov-build-hub/releases
+
+[Install]
+WantedBy=multi-user.target

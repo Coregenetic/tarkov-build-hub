@@ -14,11 +14,3 @@ export async function runMigrations(databaseUrl?: string): Promise<void> {
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  runMigrations()
-    .then(() => console.log("Migrationen angewendet."))
-    .catch((error: unknown) => {
-      console.error("Migration fehlgeschlagen:", error);
-      process.exitCode = 1;
-    });
-}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Tarkov Build Hub – tägliche Datenbanksicherung
+
+[Timer]
+OnCalendar=*-*-* 03:41:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

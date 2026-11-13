@@ -3,6 +3,7 @@
 import { useState } from "react";
 import s from "@/components/gunsmith/gunsmith.module.css";
 import type { GunsmithMessages } from "@/gunsmith/messages";
+import { SITE_TZ } from "@/lib/time";
 
 export interface SerializedComment {
   id: number;
@@ -147,7 +148,7 @@ export function Comments(props: { publicId: string; t: GunsmithMessages; uiLang:
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: number; body: string } | null>(null);
-  const fmt = (iso: string) => new Date(iso).toLocaleString(props.uiLang === "de" ? "de-DE" : "en-GB", { dateStyle: "medium", timeStyle: "short" });
+  const fmt = (iso: string) => new Date(iso).toLocaleString(props.uiLang === "de" ? "de-DE" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: SITE_TZ });
 
   const reload = async () => {
     const res = await fetch(`/b/${props.publicId}/kommentare`, { cache: "no-store" });

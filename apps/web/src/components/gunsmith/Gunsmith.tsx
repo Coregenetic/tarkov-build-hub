@@ -25,6 +25,7 @@ import { Sheet } from "./Sheet";
 import { SlotTree } from "./SlotTree";
 import { Stage } from "./Stage";
 import s from "./gunsmith.module.css";
+import { SITE_TZ } from "@/lib/time";
 
 export type Focus = { kind: "none" } | { kind: "ammo" } | { kind: "buy" } | { kind: "slot"; parentPath: string[]; slotId: string };
 
@@ -379,7 +380,7 @@ export function Gunsmith({ bundle, uiLang, itemLang, t, account }: Props) {
         <div className={`${s.notice} ${s.noticeOk}`} role="status">
           <span>
             {t.restored}
-            {restored ? ` (${new Date(restored).toLocaleString(uiLang === "de" ? "de-DE" : "en-GB", { dateStyle: "short", timeStyle: "short" })})` : ""}
+            {restored ? ` (${new Date(restored).toLocaleString(uiLang === "de" ? "de-DE" : "en-GB", { dateStyle: "short", timeStyle: "short", timeZone: SITE_TZ })})` : ""}
           </span>
           <button
             type="button"
@@ -533,7 +534,7 @@ export function Gunsmith({ bundle, uiLang, itemLang, t, account }: Props) {
             {narrow ? tree : (panel ?? tree)}
             {narrow && panel && <Sheet onClose={close} closeLabel={uiLang === "de" ? "Schließen" : "Close"}>{panel}</Sheet>}
             <p className={s.small} style={{ marginTop: 16 }}>
-              {t.stats_note} {t.data_as_of}: {new Date(bundle.dataAsOf).toLocaleString(uiLang === "de" ? "de-DE" : "en-GB", { dateStyle: "medium", timeStyle: "short" })} · tarkov.dev
+              {t.stats_note} {t.data_as_of}: {new Date(bundle.dataAsOf).toLocaleString(uiLang === "de" ? "de-DE" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: SITE_TZ })} · tarkov.dev
             </p>
           </section>
         );

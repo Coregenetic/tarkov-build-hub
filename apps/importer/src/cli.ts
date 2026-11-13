@@ -1,7 +1,8 @@
 import os from "node:os";
 import { parseArgs } from "node:util";
 import { fetchTarkovDevDataset, SourceFormatError, type GameMode } from "@tbh/data-adapters";
-import { banUser, setRole, unbanUser, type Role } from "@tbh/auth";
+import { banUser, deleteExpiredSessions, setRole, unbanUser, type Role } from "@tbh/auth";
+import { purgeOldActivity } from "@tbh/builds";
 import { connect } from "@tbh/db";
 import { NameOverrideError, removeNameOverride, setNameOverride, type NameField, type NameLang } from "@tbh/game-data";
 import {
@@ -35,6 +36,8 @@ Befehle:
   role  <login|twitch-id> user|moderator|admin   Rolle vergeben (Nutzer muss sich einmal angemeldet haben)
   ban   <login|twitch-id> --reason TEXT          Sperren und alle Sitzungen beenden
   unban <login|twitch-id>                        Sperre aufheben
+
+  maintenance   Tägliche Pflege: abgelaufene Sitzungen und Aktivitätstage älter als 90 Tage löschen
 
 Umgebung: DATABASE_URL (Pflicht), TARKOV_DEV_BASE_URL, TBH_ACTOR`;
 
@@ -187,6 +190,12 @@ async function main(argv: string[]): Promise<void> {
         if (!arg) throw new ImportRefusedError("Nutzung: unban <login|twitch-id>");
         await unbanUser(db, arg, actor);
         console.log(`Sperre für ${arg} aufgehoben.`);
+        break;
+      }
+      case "maintenance": {
+        const sessions = await deleteExpiredSessions(db);
+        const activity = await purgeOldActivity(db);
+        console.log(`Pflege: ${sessions} abgelaufene Sitzungen, ${activity} alte Aktivitätstage gelöscht.`);
         break;
       }
       default:

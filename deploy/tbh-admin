@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Verwaltungs-CLI des Build Hub auf dem Server, z. B.:
+#   sudo tbh-admin list
+#   sudo tbh-admin role <twitch-login> admin
+#   sudo tbh-admin import --mode pvp && sudo tbh-admin activate <id> --patch 0.16.9
+set -euo pipefail
+BASE=/opt/tarkov-build-hub
+[[ $EUID -eq 0 ]] || { echo "bitte mit sudo ausführen" >&2; exit 1; }
+exec runuser -u tbh -- env TBH_ACTOR="cli:${SUDO_USER:-root}" "$BASE/runtime/node/bin/node" --env-file="$BASE/shared/.env" "$BASE/current/tools/importer.mjs" "$@"

@@ -42,6 +42,8 @@ describe.skipIf(!enabled)("Gunsmith: veröffentlichen und Varianten (Ende zu End
   let handle: DbHandle;
   let base = "";
   let logs = "";
+  const cspViolations: string[] = [];
+  const pageErrors: string[] = [];
   let alicePage: Page;
   let publishedUrl = "";
 
@@ -91,10 +93,16 @@ describe.skipIf(!enabled)("Gunsmith: veröffentlichen und Varianten (Ende zu End
   });
 
   async function newPage(): Promise<Page> {
-    const context = await browser.newContext({ locale: "de-DE", extraHTTPHeaders: { "accept-language": "de-DE" } });
+    // Andere Zeitzone als der Server: deckt Hydration-Fehler durch Datumsanzeigen auf.
+    const context = await browser.newContext({ locale: "de-DE", timezoneId: "America/New_York", extraHTTPHeaders: { "accept-language": "de-DE" } });
     // Bilder von assets.tarkov.dev sind im Test nicht nötig.
     await context.route("https://assets.tarkov.dev/**", (route) => route.abort());
-    return context.newPage();
+    const page = await context.newPage();
+    page.on("pageerror", (e) => pageErrors.push(e.message));
+    page.on("console", (m) => {
+      if (/Content Security Policy|Content-Security-Policy/i.test(m.text())) cspViolations.push(m.text());
+    });
+    return page;
   }
 
   it("zeigt den Gunsmith ohne Anmeldung; Veröffentlichen führt zur Anmeldung", async () => {
@@ -328,6 +336,23 @@ describe.skipIf(!enabled)("Gunsmith: veröffentlichen und Varianten (Ende zu End
     const comments = await handle.db.select().from(buildComment);
     expect(comments).toHaveLength(1);
     await page.context().close();
+  });
+
+  it("setzt eine Inhaltsrichtlinie mit Nonce und der Browser meldet keine Verstöße", async () => {
+    const res = await fetch(`${base}/`);
+    const csp = res.headers.get("content-security-policy") ?? "";
+    expect(csp).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
+    expect(csp).not.toContain("unsafe-eval");
+    const html = await res.text();
+    const nonce = /'nonce-([^']+)'/.exec(csp)![1]!;
+    expect(html).toContain(`nonce="${nonce}"`);
+    // Jede Anfrage bekommt einen neuen Nonce.
+    expect((await fetch(`${base}/`)).headers.get("content-security-policy")).not.toBe(csp);
+    expect(cspViolations).toEqual([]);
+  });
+
+  it("hatte im Browser keine Skriptfehler (auch keine Hydration-Fehler)", () => {
+    expect(pageErrors).toEqual([]);
   });
 
   it("hat beim Testlauf keine Serverfehler geloggt", () => {

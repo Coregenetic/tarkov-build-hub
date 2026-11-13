@@ -13,6 +13,7 @@ import type { GunsmithMessages } from "@/gunsmith/messages";
 import type { Lang, WeaponBundle } from "@/gunsmith/types";
 import { formatNumber, percent, pickName, rubles, slotLabel } from "@/gunsmith/view";
 import { Comments, Reactions, ReportButton, type SerializedComment } from "./Community";
+import { SITE_TZ } from "@/lib/time";
 
 export interface SerializedView {
   publicId: string;
@@ -73,7 +74,7 @@ export function BuildPage({ view, bundle, uiLang, itemLang, t, viewer, loginUrl,
   const ammo = bundle.ammo.find((a) => a.id === v.ammoExtId) ?? null;
   const stats = v.stats;
   const layout = useMemo(() => layoutBuild(v.tree, bundle.items), [v.tree, bundle]);
-  const date = (iso: string) => new Date(iso).toLocaleDateString(uiLang === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const date = (iso: string) => new Date(iso).toLocaleDateString(uiLang === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: SITE_TZ });
 
   const act = async (fn: () => Promise<void>) => {
     setBusy(true);

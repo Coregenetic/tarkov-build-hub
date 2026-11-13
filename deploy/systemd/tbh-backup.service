@@ -1,0 +1,15 @@
+# Tägliche Datenbanksicherung nach /opt/tarkov-build-hub/backups (14 Tage aufbewahrt).
+[Unit]
+Description=Tarkov Build Hub (Datenbanksicherung)
+
+[Service]
+Type=oneshot
+User=tbh
+Group=tbh
+EnvironmentFile=/opt/tarkov-build-hub/shared/.env
+ExecStart=/opt/tarkov-build-hub/current/deploy/backup.sh
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/tarkov-build-hub/backups

@@ -1,0 +1,16 @@
+# Tägliche Pflege: abgelaufene Sitzungen und Aktivitätstage älter als 90 Tage löschen.
+[Unit]
+Description=Tarkov Build Hub (tägliche Pflege)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=tbh
+Group=tbh
+EnvironmentFile=/opt/tarkov-build-hub/shared/.env
+Environment=TBH_ACTOR=system:pflege
+ExecStart=/opt/tarkov-build-hub/runtime/node/bin/node /opt/tarkov-build-hub/current/tools/importer.mjs maintenance
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
