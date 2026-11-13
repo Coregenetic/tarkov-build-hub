@@ -4,12 +4,12 @@ import type { Messages } from "@/lib/i18n";
 
 export function SiteHeader({ user, t, loginEnabled, path }: { user: SessionUser | null; t: Messages; loginEnabled: boolean; path: string }) {
   return (
-    <header style={{ borderBottom: "1px solid var(--line)", background: "var(--bg-raised)" }}>
-      <div className="container" style={{ minHeight: 68, display: "flex", flexWrap: "wrap", gap: "12px 32px", alignItems: "center", paddingTop: 10, paddingBottom: 10 }}>
+    <header className="site-header" style={{ borderBottom: "1px solid var(--line)", background: "var(--bg-raised)" }}>
+      <div className="container site-header-row" style={{ minHeight: 68, display: "flex", flexWrap: "wrap", gap: "12px 32px", alignItems: "center", paddingTop: 10, paddingBottom: 10 }}>
         <Link href="/" className="head" style={{ color: "var(--ink)", fontSize: 24, fontWeight: 700, letterSpacing: "0.04em" }}>
           BUILD HUB
         </Link>
-        <nav aria-label="Hauptmenü" style={{ display: "flex", gap: 24, fontSize: 15, fontWeight: 500 }}>
+        <nav aria-label="Hauptmenü" className="site-nav" style={{ display: "flex", gap: 24, fontSize: 15, fontWeight: 500 }}>
           <Link href="/" style={{ color: path === "/" ? "var(--ink)" : "var(--muted)" }} aria-current={path === "/" ? "page" : undefined}>
             {t.nav_discover}
           </Link>
@@ -17,7 +17,7 @@ export function SiteHeader({ user, t, loginEnabled, path }: { user: SessionUser 
             {t.nav_gunsmith}
           </Link>
         </nav>
-        <span style={{ flex: 1 }} />
+        <span className="site-spacer" style={{ flex: 1 }} />
         <Link href={`/einstellungen?back=${encodeURIComponent(path)}`} style={{ color: path.startsWith("/einstellungen") ? "var(--ink)" : "var(--muted)", fontSize: 14 }}>
           {t.nav_settings}
         </Link>
@@ -37,12 +37,14 @@ export function SiteHeader({ user, t, loginEnabled, path }: { user: SessionUser 
             </form>
           </div>
         ) : loginEnabled ? (
-          <a className="btn btn-light" href={`/auth/twitch/login?returnTo=${encodeURIComponent(path)}`}>
-            {t.login}
+          <a className="btn btn-light site-login" href={`/auth/twitch/login?returnTo=${encodeURIComponent(path)}`}>
+            <span className="hide-sm">{t.login}</span>
+            <span className="show-sm">{t.login_short}</span>
           </a>
         ) : (
-          <span className="btn" aria-disabled="true">
-            {t.login_disabled}
+          <span className="btn site-login" aria-disabled="true" title={t.login_disabled}>
+            <span className="hide-sm">{t.login_disabled}</span>
+            <span className="show-sm">{t.login_disabled_short}</span>
           </span>
         )}
       </div>

@@ -19,6 +19,7 @@ import { summarizeProcurement } from "@tbh/game-data/procurement";
 import { AmmoPicker } from "./AmmoPicker";
 import { PartPicker } from "./PartPicker";
 import { Procurement } from "./Procurement";
+import { Sheet } from "./Sheet";
 import { SlotTree } from "./SlotTree";
 import { Stage } from "./Stage";
 import s from "./gunsmith.module.css";
@@ -41,6 +42,19 @@ interface Props {
 /** Slots, die auch leer als „+“-Kasten erscheinen. */
 const PRIMARY_EMPTY = /^mod_(scope|muzzle|stock|pistol_?grip|magazine|foregrip|handguard|barrel|reciever|charge|sight_rear|gas_block)/;
 
+/** true auf schmalen Bildschirmen (gleiche Grenze wie im CSS). */
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 760px)");
+    const update = () => setNarrow(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return narrow;
+}
+
 const draftKey = (b: WeaponBundle) => `tbh:draft:v1:${b.mode}:${b.weapon.id}`;
 
 export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
@@ -57,6 +71,7 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
   const [restored, setRestored] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const loaded = useRef(false);
+  const narrow = useNarrow();
 
   // Entwurf aus diesem Browser wiederherstellen (nur einmal, nach dem ersten Rendern).
   useEffect(() => {
@@ -239,17 +254,23 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
             </select>
           </>
         )}
-        <button type="button" className="btn" onClick={undo} disabled={past.length === 0} aria-keyshortcuts="Control+Z">
-          {t.undo}
+        <button type="button" className="btn" onClick={undo} disabled={past.length === 0} aria-keyshortcuts="Control+Z" aria-label={t.undo} title={t.undo}>
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M5 4L2 7L5 10M2.5 7H10a4 4 0 0 1 0 8H8" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          </svg>
+          <span className={s.btnText}>{t.undo}</span>
         </button>
-        <button type="button" className="btn" onClick={redo} disabled={future.length === 0} aria-keyshortcuts="Control+Shift+Z">
-          {t.redo}
+        <button type="button" className="btn" onClick={redo} disabled={future.length === 0} aria-keyshortcuts="Control+Shift+Z" aria-label={t.redo} title={t.redo}>
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M11 4L14 7L11 10M13.5 7H6a4 4 0 0 0 0 8h2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          </svg>
+          <span className={s.btnText}>{t.redo}</span>
         </button>
         <span className={s.saved} aria-live="polite">
           {bundle.mode.toUpperCase()} · Patch {bundle.patch ?? "—"}
           {savedAt ? ` · ${t.saved_local}` : ""}
         </span>
-        <span className="btn" aria-disabled="true" title={t.publish_soon}>
+        <span className={`btn ${s.hideNarrow}`} aria-disabled="true" title={t.publish_soon}>
           {t.publish}
         </span>
       </div>
@@ -352,42 +373,51 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
         t={t}
         focusedKey={focusedKey}
         errorPaths={errorPaths}
+        fit={narrow}
         onPick={(path) => {
           if (path.length === 0) setFocus({ kind: "none" });
           else setFocus({ kind: "slot", parentPath: path.slice(0, -1), slotId: path.at(-1)! });
         }}
       />
 
-      <section className={s.drawer} aria-labelledby="drawer-title">
-        <span className={s.grip} aria-hidden="true" />
-        {focus.kind === "slot" ? (
-          <PartPicker
-            key={focusedKey}
-            bundle={bundle}
-            data={data}
-            build={draft.build}
-            parentPath={focus.parentPath}
-            slotId={focus.slotId}
-            lang={itemLang}
-            uiLang={uiLang}
-            t={t}
-            onInstall={(id) => install(focus.parentPath, focus.slotId, id)}
-            onClose={() => setFocus({ kind: "none" })}
-          />
-        ) : focus.kind === "ammo" ? (
-          <AmmoPicker
-            bundle={bundle}
-            allowed={ammoIds}
-            selected={draft.ammo}
-            lang={itemLang}
-            uiLang={uiLang}
-            t={t}
-            onSelect={(id) => commit({ ...draft, ammo: id })}
-            onClose={() => setFocus({ kind: "none" })}
-          />
-        ) : focus.kind === "buy" ? (
-          <Procurement bundle={bundle} summary={procurement} lang={itemLang} uiLang={uiLang} t={t} onClose={() => setFocus({ kind: "none" })} />
-        ) : (
+      {(() => {
+        const close = () => setFocus({ kind: "none" });
+        const panel =
+          focus.kind === "slot" ? (
+            <PartPicker
+              key={focusedKey}
+              bundle={bundle}
+              data={data}
+              build={draft.build}
+              parentPath={focus.parentPath}
+              slotId={focus.slotId}
+              lang={itemLang}
+              uiLang={uiLang}
+              t={t}
+              onInstall={(id) => {
+                install(focus.parentPath, focus.slotId, id);
+                if (narrow) close();
+              }}
+              onClose={close}
+            />
+          ) : focus.kind === "ammo" ? (
+            <AmmoPicker
+              bundle={bundle}
+              allowed={ammoIds}
+              selected={draft.ammo}
+              lang={itemLang}
+              uiLang={uiLang}
+              t={t}
+              onSelect={(id) => {
+                commit({ ...draft, ammo: id });
+                if (narrow) close();
+              }}
+              onClose={close}
+            />
+          ) : focus.kind === "buy" ? (
+            <Procurement bundle={bundle} summary={procurement} lang={itemLang} uiLang={uiLang} t={t} onClose={close} />
+          ) : null;
+        const tree = (
           <SlotTree
             bundle={bundle}
             build={draft.build}
@@ -396,11 +426,18 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
             issues={validation.issues}
             onPick={(parentPath: BuildPath, slotId: string) => setFocus({ kind: "slot", parentPath: [...parentPath], slotId })}
           />
-        )}
-        <p className={s.small} style={{ marginTop: 16 }}>
-          {t.stats_note} {t.data_as_of}: {new Date(bundle.dataAsOf).toLocaleString(uiLang === "de" ? "de-DE" : "en-GB", { dateStyle: "medium", timeStyle: "short" })} · tarkov.dev
-        </p>
-      </section>
+        );
+        return (
+          <section className={s.drawer} aria-labelledby="drawer-title">
+            <span className={s.grip} aria-hidden="true" />
+            {narrow ? tree : (panel ?? tree)}
+            {narrow && panel && <Sheet onClose={close} closeLabel={uiLang === "de" ? "Schließen" : "Close"}>{panel}</Sheet>}
+            <p className={s.small} style={{ marginTop: 16 }}>
+              {t.stats_note} {t.data_as_of}: {new Date(bundle.dataAsOf).toLocaleString(uiLang === "de" ? "de-DE" : "en-GB", { dateStyle: "medium", timeStyle: "short" })} · tarkov.dev
+            </p>
+          </section>
+        );
+      })()}
     </div>
   );
 }

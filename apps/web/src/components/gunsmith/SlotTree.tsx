@@ -49,7 +49,7 @@ export function SlotTree({ bundle, build, lang, t, issues, onPick }: Props) {
     <>
       <div className={s.drawerHead}>
         <div>
-          <h2 id="drawer-title" className={s.drawerTitle}>
+          <h2 id="slots-title" className={s.drawerTitle}>
             {t.all_slots}
           </h2>
           <span className={s.drawerSub}>{t.all_slots_hint}</span>

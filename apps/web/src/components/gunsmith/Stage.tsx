@@ -17,12 +17,14 @@ interface Props {
   focusedKey: string | null;
   errorPaths: Set<string>;
   onPick: (path: string[]) => void;
+  /** Auf die volle Breite einpassen (Handy: Übersicht, gewählt wird in der Liste). */
+  fit?: boolean;
 }
 
 const CAPTION = 18;
 
 /** Aufbauansicht: Kästen aus layoutBuild, als Ganzes auf die verfügbare Breite skaliert. */
-export function Stage({ bundle, build, layout, lang, t, focusedKey, errorPaths, onPick }: Props) {
+export function Stage({ bundle, build, layout, lang, t, focusedKey, errorPaths, onPick, fit = false }: Props) {
   const wrap = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState(1100);
 
@@ -35,7 +37,7 @@ export function Stage({ bundle, build, layout, lang, t, focusedKey, errorPaths, 
   }, []);
 
   // Auf schmalen Bildschirmen nicht unter 0,72 verkleinern – dann lieber seitlich scrollen.
-  const scale = Math.max(0.72, Math.min(1.55, available / layout.width));
+  const scale = fit ? Math.min(1, available / layout.width) : Math.max(0.72, Math.min(1.55, available / layout.width));
   const parentOf = (path: string[]) => {
     let node: BuildNode | undefined = build;
     for (const id of path.slice(0, -1)) node = node?.slots?.[id];
@@ -84,7 +86,7 @@ export function Stage({ bundle, build, layout, lang, t, focusedKey, errorPaths, 
           })}
         </div>
       </div>
-      <p className={s.hint}>{t.stage_hint}</p>
+      <p className={s.hint}>{fit ? t.stage_hint_narrow : t.stage_hint}</p>
     </div>
   );
 }

@@ -578,3 +578,112 @@ button.stat:hover {
     columns: 1;
   }
 }
+
+/* Handy: Knöpfe kompakt, Werte als Raster, Auswahl als unteres Blatt. */
+.btnText {
+  display: inline;
+}
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(8, 9, 10, 0.6);
+}
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 41;
+  max-height: 86vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #111315;
+  border-top: 1px solid var(--line-strong);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.6);
+  padding: 8px 16px calc(24px + env(safe-area-inset-bottom));
+}
+.sheet:focus {
+  outline: none;
+}
+.sheetTop {
+  position: sticky;
+  top: -8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 36px;
+  margin: -8px -16px 4px;
+  background: #111315;
+  z-index: 1;
+}
+.sheetClose {
+  position: absolute;
+  right: 8px;
+  top: 2px;
+  width: 44px;
+  height: 32px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .btnText,
+  .hideNarrow {
+    display: none !important;
+  }
+  .kicker {
+    font-size: 11px;
+  }
+  .saved {
+    flex-basis: 100%;
+    order: 9;
+    font-size: 12px;
+  }
+  .top {
+    padding-top: 12px;
+  }
+  .crumbs {
+    display: none;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    overflow: visible;
+  }
+  .stat {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    min-width: 0;
+  }
+  .stat:nth-child(3n) {
+    border-right: 0;
+  }
+  .statValue {
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .statSub {
+    display: none;
+  }
+  .status {
+    grid-column: 1 / -1;
+    padding: 8px 10px;
+    justify-content: center;
+  }
+  .stageWrap {
+    overflow: hidden;
+  }
+  .drawer {
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .sheet .cards {
+    max-height: none;
+  }
+}

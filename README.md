@@ -12,7 +12,9 @@ Fan-Projekt, nicht mit Battlestate Games verbunden. Spieldaten und Bilder stamme
 | 1 | Datenfundament: versionierte Spieldaten, Import mit Vorschau, Freigabe und Rückweg | erledigt (Server-Betrieb folgt mit Deployment) |
 | 2 | Kompatibilitäts-Engine, geprüft an allen 401 Waffen-Presets | erledigt |
 | 3 | Next.js-App, Twitch-Login, Profile, Rollen | erledigt |
-| 4–9 | Gunsmith, Veröffentlichen, Discovery, Community, Go-live | offen |
+| 4 | Gunsmith-Entwurf (Variante B „Werkbank“) | erledigt |
+| 5 | Gunsmith: Aufbauansicht, Teile tauschen, Munition, Beschaffung (Händler/Flohmarkt), Sprache für Item-Namen, Handy-Ansicht, Entwurf im Browser; Import um Händler, Tausch, Aufgaben, Kategorien und Namensprüfung erweitert | erledigt |
+| 6–9 | Veröffentlichen und Entwürfe im Konto, Discovery, Community und Admin-Bereich, Go-live | offen |
 
 ## Aufbau
 

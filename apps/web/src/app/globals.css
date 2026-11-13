@@ -157,3 +157,34 @@ a:hover {
 .stage {
   background: radial-gradient(ellipse 55% 60% at 60% 55%, #26292d 0%, #15171a 55%, var(--bg) 100%);
 }
+
+.show-sm {
+  display: none;
+}
+@media (max-width: 640px) {
+  .hide-sm {
+    display: none;
+  }
+  .show-sm {
+    display: inline;
+  }
+  .site-header-row {
+    gap: 8px 16px !important;
+    min-height: 56px !important;
+    font-size: 14px;
+  }
+  .site-header-row > a:first-child {
+    font-size: 20px !important;
+  }
+  .site-nav {
+    gap: 16px !important;
+  }
+  .site-spacer {
+    display: none;
+  }
+  .site-login {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+}
