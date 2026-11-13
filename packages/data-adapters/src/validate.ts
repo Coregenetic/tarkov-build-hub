@@ -1,3 +1,5 @@
+import { findNameIssues } from "./name-issues.ts";
+import type { NameIssue } from "./name-issues.ts";
 import type { Lang, NormalizedDataset } from "./types.ts";
 
 export interface ValidationReport {
@@ -13,6 +15,15 @@ export interface ValidationReport {
   danglingContains: number;
   missingNames: Partial<Record<Lang, number>>;
   rejectedCount: number;
+  traderCount: number;
+  traderOfferCount: number;
+  barterCount: number;
+  taskCount: number;
+  /** Händlerangebote und Tausch, deren Aufgabe nicht in den Daten steht. */
+  unknownTaskRefs: number;
+  fleaMinPlayerLevel: number | null;
+  nameIssues: Record<NameIssue["kind"], number>;
+  nameIssueList: NameIssue[];
   errors: string[];
   warnings: string[];
 }
@@ -52,6 +63,14 @@ export function validateDataset(
     danglingContains: 0,
     missingNames: {},
     rejectedCount,
+    traderCount: dataset.traders.length,
+    traderOfferCount: 0,
+    barterCount: dataset.barters.length,
+    taskCount: dataset.tasks.length,
+    unknownTaskRefs: 0,
+    fleaMinPlayerLevel: dataset.fleaMinPlayerLevel,
+    nameIssues: { cyrillic: 0, caliber: 0 },
+    nameIssueList: [],
     errors: [],
     warnings: [],
   };
@@ -79,6 +98,24 @@ export function validateDataset(
     }
   }
 
+  const traderIds = new Set(dataset.traders.map((t) => t.extId));
+  const taskIds = new Set(dataset.tasks.map((t) => t.extId));
+  let unknownTraders = 0;
+  for (const item of dataset.items) {
+    for (const offer of item.traderOffers) {
+      report.traderOfferCount++;
+      if (!traderIds.has(offer.traderExtId)) unknownTraders++;
+      if (offer.taskExtId && !taskIds.has(offer.taskExtId)) report.unknownTaskRefs++;
+    }
+  }
+  for (const barter of dataset.barters) {
+    if (!traderIds.has(barter.traderExtId)) unknownTraders++;
+    if (barter.taskExtId && !taskIds.has(barter.taskExtId)) report.unknownTaskRefs++;
+  }
+
+  report.nameIssueList = findNameIssues(dataset);
+  for (const issue of report.nameIssueList) report.nameIssues[issue.kind]++;
+
   if (report.itemCount < thresholds.minItems) {
     report.errors.push(`Nur ${report.itemCount} Items, erwartet mindestens ${thresholds.minItems}. Abruf vermutlich unvollständig.`);
   }
@@ -98,6 +135,19 @@ export function validateDataset(
     if (missing / Math.max(1, report.itemCount) > thresholds.maxMissingNameRatio) {
       report.warnings.push(`${missing} Items ohne Namen in „${lang}“.`);
     }
+  }
+  if (report.traderCount === 0) {
+    report.errors.push("Keine Händler in den Daten. Beschaffung wäre leer.");
+  } else if (report.traderOfferCount === 0) {
+    report.errors.push("Keine Händlerangebote in den Daten. Beschaffung wäre leer.");
+  }
+  if (unknownTraders > 0) report.warnings.push(`${unknownTraders} Angebote verweisen auf unbekannte Händler.`);
+  if (report.unknownTaskRefs > 0) report.warnings.push(`${report.unknownTaskRefs} Angebote verweisen auf unbekannte Aufgaben.`);
+  if (report.fleaMinPlayerLevel === null) report.warnings.push("Allgemeines Flohmarkt-Level fehlt in den Daten.");
+  if (report.nameIssueList.length > 0) {
+    report.warnings.push(
+      `${report.nameIssueList.length} auffällige Item-Namen (${report.nameIssues.cyrillic} mit kyrillischen Zeichen, ${report.nameIssues.caliber} mit abweichendem Kaliber).`,
+    );
   }
   if (rejectedCount > 0) {
     report.warnings.push(`${rejectedCount} Items wurden wegen unbekanntem Format übersprungen.`);

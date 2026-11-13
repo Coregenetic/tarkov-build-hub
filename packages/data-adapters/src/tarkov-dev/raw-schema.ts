@@ -28,6 +28,18 @@ export const rawSlotSchema = z
   })
   .passthrough();
 
+export const rawTraderOfferSchema = z
+  .object({
+    trader: z.string(),
+    price: z.number(),
+    priceRUB: nullableNumber,
+    currency: z.string(),
+    minTraderLevel: z.number().int(),
+    taskUnlock: nullableString,
+    buyLimit: nullableNumber,
+  })
+  .passthrough();
+
 export const rawItemSchema = z
   .object({
     id: z.string().min(1),
@@ -57,6 +69,8 @@ export const rawItemSchema = z
     conflictingItems: z.array(z.string()).optional().default([]),
     conflictingCategories: z.array(z.string()).optional().default([]),
     conflictingSlotIds: z.array(z.string()).optional().default([]),
+    minLevelForFlea: nullableNumber,
+    buyFromTrader: z.array(rawTraderOfferSchema).optional().default([]),
     properties: z
       .object({
         propertiesType: z.string().optional(),
@@ -73,6 +87,7 @@ export const rawItemsFileSchema = z
     data: z
       .object({
         items: z.record(z.string(), z.unknown()),
+        fleaMarket: z.object({ minPlayerLevel: z.number().nullable().optional() }).passthrough().nullable().optional(),
       })
       .passthrough(),
   })
@@ -80,6 +95,69 @@ export const rawItemsFileSchema = z
 
 export const rawTranslationFileSchema = z.object({
   data: z.record(z.string(), z.unknown()),
+});
+
+export const rawTradersFileSchema = z.object({
+  data: z.record(
+    z.string(),
+    z
+      .object({
+        id: z.string(),
+        name: z.string().optional(),
+        normalizedName: z.string(),
+        currency: nullableString,
+        levels: z
+          .array(
+            z
+              .object({
+                level: z.number().int(),
+                requiredPlayerLevel: z.number(),
+                requiredReputation: z.number(),
+                requiredCommerce: z.number(),
+              })
+              .passthrough(),
+          )
+          .default([]),
+      })
+      .passthrough(),
+  ),
+});
+
+const rawItemCount = z.object({ item: z.string(), count: z.number() }).passthrough();
+
+export const rawBartersFileSchema = z.object({
+  data: z.array(
+    z
+      .object({
+        id: z.string(),
+        trader: z.string(),
+        minTraderLevel: z.number().int(),
+        taskUnlock: nullableString,
+        buyLimit: nullableNumber,
+        offeredItem: rawItemCount,
+        requiredItems: z.array(rawItemCount).default([]),
+      })
+      .passthrough(),
+  ),
+});
+
+export const rawTasksFileSchema = z.object({
+  data: z
+    .object({
+      tasks: z.record(
+        z.string(),
+        z
+          .object({
+            id: z.string(),
+            name: z.string().optional(),
+            trader: nullableString,
+            minPlayerLevel: nullableNumber,
+            wikiLink: nullableString,
+          })
+          .passthrough(),
+      ),
+    })
+    .passthrough(),
 });
 
 export type RawItem = z.infer<typeof rawItemSchema>;

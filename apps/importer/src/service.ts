@@ -12,6 +12,7 @@ import {
 } from "@tbh/data-adapters";
 import {
   auditLog,
+  barter,
   datasetRaw,
   gamePatch,
   item,
@@ -23,6 +24,9 @@ import {
   slotAllowedItem,
   slotFilter,
   slotName,
+  task,
+  trader,
+  traderOffer,
   type Database,
 } from "@tbh/db";
 
@@ -96,6 +100,7 @@ export async function importDataset(db: Database, fetched: FetchResult, options:
         checksum: fetched.checksum,
         status: "preview",
         itemCount: dataset.items.length,
+        fleaMinPlayerLevel: toInt(dataset.fleaMinPlayerLevel),
         report,
       })
       .returning({ id: itemDataset.id });
@@ -106,6 +111,12 @@ export async function importDataset(db: Database, fetched: FetchResult, options:
       ...Object.entries(fetched.raw.translations).map(([lang, bytes]) => ({
         datasetId,
         part: `items_${lang}`,
+        gzip: gzipSync(bytes),
+        byteLength: bytes.byteLength,
+      })),
+      ...Object.entries(fetched.raw.extra).map(([part, bytes]) => ({
+        datasetId,
+        part,
         gzip: gzipSync(bytes),
         byteLength: bytes.byteLength,
       })),
@@ -134,6 +145,65 @@ export async function importDataset(db: Database, fetched: FetchResult, options:
         properties: i.properties,
         conflictingCategories: i.conflictingCategories,
         conflictingSlotIds: i.conflictingSlotIds,
+        minLevelForFlea: toInt(i.minLevelForFlea),
+      })),
+    );
+
+    await insertChunked(
+      tx,
+      trader,
+      dataset.traders.map((t) => ({
+        datasetId,
+        extId: t.extId,
+        normalizedName: t.normalizedName,
+        currency: t.currency,
+        names: t.names,
+        levels: t.levels,
+      })),
+    );
+    await insertChunked(
+      tx,
+      traderOffer,
+      dataset.items.flatMap((i) =>
+        i.traderOffers.map((o, index) => ({
+          datasetId,
+          itemExtId: i.extId,
+          sort: index,
+          traderExtId: o.traderExtId,
+          minTraderLevel: o.minTraderLevel,
+          price: o.price,
+          currency: o.currency,
+          priceRub: toInt(o.priceRub),
+          taskExtId: o.taskExtId,
+          buyLimit: toInt(o.buyLimit),
+        })),
+      ),
+    );
+    await insertChunked(
+      tx,
+      barter,
+      dataset.barters.map((b) => ({
+        datasetId,
+        extId: b.extId,
+        traderExtId: b.traderExtId,
+        minTraderLevel: b.minTraderLevel,
+        taskExtId: b.taskExtId,
+        buyLimit: toInt(b.buyLimit),
+        offeredExtId: b.offered.itemExtId,
+        offeredCount: b.offered.count,
+        required: b.required,
+      })),
+    );
+    await insertChunked(
+      tx,
+      task,
+      dataset.tasks.map((t) => ({
+        datasetId,
+        extId: t.extId,
+        traderExtId: t.traderExtId,
+        minPlayerLevel: toInt(t.minPlayerLevel),
+        wikiLink: t.wikiLink,
+        names: t.names,
       })),
     );
 
@@ -192,7 +262,15 @@ export async function importDataset(db: Database, fetched: FetchResult, options:
       actor: options.actor,
       action: "dataset.import",
       target: `item_dataset:${datasetId}`,
-      details: { mode: dataset.mode, checksum: fetched.checksum, items: dataset.items.length, warnings: report.warnings },
+      details: {
+        mode: dataset.mode,
+        checksum: fetched.checksum,
+        items: dataset.items.length,
+        traderOffers: report.traderOfferCount,
+        barters: report.barterCount,
+        nameIssues: report.nameIssues,
+        warnings: report.warnings,
+      },
     });
 
     return { datasetId, report };
@@ -273,7 +351,21 @@ export async function discardDataset(db: Database, id: number, actor: string): P
     if (target.status !== "preview") {
       throw new ImportRefusedError(`Nur Vorschauen können verworfen werden, #${id} ist „${target.status}“.`);
     }
-    for (const table of [itemContains, itemConflict, slotFilter, slotAllowedItem, itemSlot, slotName, itemName, item, datasetRaw]) {
+    for (const table of [
+      itemContains,
+      itemConflict,
+      slotFilter,
+      slotAllowedItem,
+      itemSlot,
+      slotName,
+      itemName,
+      traderOffer,
+      barter,
+      task,
+      trader,
+      item,
+      datasetRaw,
+    ]) {
       await tx.delete(table).where(eq(table.datasetId, id));
     }
     await tx.update(itemDataset).set({ status: "discarded" }).where(eq(itemDataset.id, id));

@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Lädt einen Datensatz als GameData für die Kompatibilitäts-Engine.",
+  "description": "L\u00e4dt einen Datensatz als GameData f\u00fcr die Kompatibilit\u00e4ts-Engine.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./procurement": "./src/procurement.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",

@@ -3,7 +3,20 @@ import { fileURLToPath } from "node:url";
 import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fetchTarkovDevDataset, type FetchResult } from "@tbh/data-adapters";
-import { auditLog, connect, item, itemDataset, itemName, itemSlot, slotAllowedItem, type DbHandle } from "@tbh/db";
+import {
+  auditLog,
+  barter,
+  connect,
+  item,
+  itemDataset,
+  itemName,
+  itemSlot,
+  slotAllowedItem,
+  task,
+  trader,
+  traderOffer,
+  type DbHandle,
+} from "@tbh/db";
 import { resetTestDatabase } from "@tbh/db/testing";
 import { activateDataset, discardDataset, importDataset, ImportRefusedError, listDatasets, rollbackDataset } from "../src/service.ts";
 
@@ -59,6 +72,24 @@ describe.skipIf(!url)("Import-Dienst gegen PostgreSQL", () => {
     expect(de!.name).toBe("Colt M4A1 5,56x45mm Sturmgewehr");
   });
 
+  it("speichert Händler, Angebote, Tausch, Aufgaben und Flohmarkt-Level", async () => {
+    const { db } = handle;
+    const [ds] = await listDatasets(db, "pvp");
+    const id = ds!.id;
+    const [row] = await db.select({ flea: itemDataset.fleaMinPlayerLevel }).from(itemDataset).where(eq(itemDataset.id, id));
+    expect(row!.flea).toBe(15);
+    const [m4] = await db.select({ flea: item.minLevelForFlea }).from(item).where(and(eq(item.datasetId, id), eq(item.extId, M4A1)));
+    expect(m4!.flea).toBe(25);
+    const offers = await db.select().from(traderOffer).where(and(eq(traderOffer.datasetId, id), eq(traderOffer.itemExtId, M4A1)));
+    expect(offers.map((o) => [o.traderExtId, o.minTraderLevel, o.price, o.currency])).toEqual([["5a7c2eca46aef81a7ca2145d", 3, 22997, "RUB"]]);
+    expect(await db.select().from(trader).where(eq(trader.datasetId, id))).toHaveLength(16);
+    expect((await db.select().from(barter).where(eq(barter.datasetId, id))).length).toBe(3);
+    const [t] = await db.select().from(task).where(eq(task.datasetId, id));
+    expect(t!.names).toMatchObject({ de: "Den Brotkrumen folgen" });
+    const raw = (await db.execute(sql`SELECT part FROM dataset_raw WHERE dataset_id = ${id} ORDER BY part`)) as unknown as { part: string }[];
+    expect(raw.map((r) => r.part)).toEqual(["barters", "items", "items_de", "items_en", "tasks", "tasks_de", "tasks_en", "traders", "traders_de", "traders_en"]);
+  });
+
   it("lehnt identische Daten ein zweites Mal ab", async () => {
     await expect(importDataset(handle.db, fixture, { actor, thresholds })).rejects.toThrow(ImportRefusedError);
   });
@@ -104,6 +135,8 @@ describe.skipIf(!url)("Import-Dienst gegen PostgreSQL", () => {
     await discardDataset(db, preview.datasetId, actor);
     const items = await db.select().from(item).where(eq(item.datasetId, preview.datasetId));
     expect(items).toHaveLength(0);
+    expect(await db.select().from(traderOffer).where(eq(traderOffer.datasetId, preview.datasetId))).toHaveLength(0);
+    expect(await db.select().from(trader).where(eq(trader.datasetId, preview.datasetId))).toHaveLength(0);
     const [ds] = await db.select().from(itemDataset).where(eq(itemDataset.id, preview.datasetId));
     expect(ds!.status).toBe("discarded");
 
@@ -120,5 +153,14 @@ describe.skipIf(!url)("Import-Dienst gegen PostgreSQL", () => {
   it("protokolliert jede Aktion", async () => {
     const actions = (await handle.db.select({ action: auditLog.action }).from(auditLog)).map((r) => r.action);
     expect(actions).toEqual(expect.arrayContaining(["dataset.import", "dataset.activate", "dataset.rollback", "dataset.discard"]));
+  });
+
+  it("lässt das Protokoll nicht ändern oder löschen", async () => {
+    const { db } = handle;
+    await expect(db.update(auditLog).set({ actor: "jemand anderes" })).rejects.toThrow();
+    await expect(db.delete(auditLog)).rejects.toThrow();
+    await expect(db.execute(sql`TRUNCATE audit_log`)).rejects.toThrow();
+    const rows = await db.select({ actor: auditLog.actor }).from(auditLog);
+    expect(rows.every((r) => r.actor === actor)).toBe(true);
   });
 });

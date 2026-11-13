@@ -72,10 +72,32 @@ export async function fetchTarkovDevDataset(options: FetchOptions): Promise<Fetc
     translations[lang] = parseTranslations(parseJson(bytes, `items_${lang}`));
   }
 
+  // Händler, Tauschangebote und Aufgaben (für die Beschaffung). Pflicht: fehlen sie, bricht der Import ab.
+  const extra: Record<string, Uint8Array> = {};
+  const loadExtra = async (name: string): Promise<unknown> => {
+    const bytes = await load(name, `${baseUrl}/${modePath}/${name}`);
+    extra[name] = bytes;
+    return parseJson(bytes, name);
+  };
+  const loadExtraTranslations = async (base: string): Promise<Partial<Record<Lang, TranslationTable>>> => {
+    const tables: Partial<Record<Lang, TranslationTable>> = {};
+    for (const lang of langs) tables[lang] = parseTranslations(await loadExtra(`${base}_${lang}`));
+    return tables;
+  };
+  const tradersJson = await loadExtra("traders");
+  const traderTranslations = await loadExtraTranslations("traders");
+  const bartersJson = await loadExtra("barters");
+  const tasksJson = await loadExtra("tasks");
+  const taskTranslations = await loadExtraTranslations("tasks");
+
   const hash = createHash("sha256");
   hash.update(itemsBytes);
   for (const lang of langs) {
     const bytes = translationBytes[lang];
+    if (bytes) hash.update(bytes);
+  }
+  for (const name of Object.keys(extra).sort()) {
+    const bytes = extra[name];
     if (bytes) hash.update(bytes);
   }
 
@@ -85,11 +107,16 @@ export async function fetchTarkovDevDataset(options: FetchOptions): Promise<Fetc
     fetchedAt: (options.now?.() ?? new Date()).toISOString(),
     itemsJson: parseJson(itemsBytes, "items"),
     translations,
+    tradersJson,
+    traderTranslations,
+    bartersJson,
+    tasksJson,
+    taskTranslations,
   });
 
   return {
     dataset,
-    raw: { items: itemsBytes, translations: translationBytes },
+    raw: { items: itemsBytes, translations: translationBytes, extra },
     checksum: hash.digest("hex"),
     rejected,
   };

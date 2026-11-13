@@ -50,6 +50,8 @@ export const itemDataset = pgTable(
     status: datasetStatus("status").notNull().default("preview"),
     patchId: integer("patch_id").references(() => gamePatch.id, { onDelete: "restrict" }),
     itemCount: integer("item_count").notNull(),
+    /** Allgemeine Flohmarkt-Freischaltung (Spielerlevel) laut Quelle. */
+    fleaMinPlayerLevel: smallint("flea_min_player_level"),
     /** Prüfbericht des Imports (Zählungen, Warnungen, Fehler). */
     report: jsonb("report").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -101,6 +103,8 @@ export const item = pgTable(
     properties: jsonb("properties").notNull(),
     conflictingCategories: text("conflicting_categories").array().notNull(),
     conflictingSlotIds: text("conflicting_slot_ids").array().notNull(),
+    /** Eigene Flohmarkt-Sperre (0 = keine eigene, es gilt das allgemeine Level). */
+    minLevelForFlea: smallint("min_level_for_flea"),
   },
   (t) => [
     primaryKey({ columns: [t.datasetId, t.extId] }),
@@ -217,6 +221,80 @@ export const itemContains = pgTable(
   (t) => [primaryKey({ columns: [t.datasetId, t.itemExtId, t.sort] })],
 );
 
+/** Händler mit Stufen (Spielerlevel, Ruf, Umsatz) je Datensatz. */
+export const trader = pgTable(
+  "trader",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    extId: text("ext_id").notNull(),
+    normalizedName: text("normalized_name").notNull(),
+    currency: text("currency"),
+    /** { de?: string, en?: string } */
+    names: jsonb("names").notNull(),
+    /** [{ level, requiredPlayerLevel, requiredReputation, requiredCommerce }] */
+    levels: jsonb("levels").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.extId] })],
+);
+
+/** Kaufangebote der Händler (buyFromTrader). */
+export const traderOffer = pgTable(
+  "trader_offer",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    itemExtId: text("item_ext_id").notNull(),
+    sort: smallint("sort").notNull(),
+    traderExtId: text("trader_ext_id").notNull(),
+    minTraderLevel: smallint("min_trader_level").notNull(),
+    price: doublePrecision("price").notNull(),
+    currency: text("currency").notNull(),
+    priceRub: integer("price_rub"),
+    taskExtId: text("task_ext_id"),
+    buyLimit: integer("buy_limit"),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.itemExtId, t.sort] })],
+);
+
+/** Tauschangebote der Händler. */
+export const barter = pgTable(
+  "barter",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    extId: text("ext_id").notNull(),
+    traderExtId: text("trader_ext_id").notNull(),
+    minTraderLevel: smallint("min_trader_level").notNull(),
+    taskExtId: text("task_ext_id"),
+    buyLimit: integer("buy_limit"),
+    offeredExtId: text("offered_ext_id").notNull(),
+    offeredCount: doublePrecision("offered_count").notNull(),
+    /** [{ itemExtId, count }] */
+    required: jsonb("required").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.extId] }), index("barter_offered_idx").on(t.datasetId, t.offeredExtId)],
+);
+
+/** Aufgaben (nur was für Freischaltungen gebraucht wird). */
+export const task = pgTable(
+  "task",
+  {
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "cascade" }),
+    extId: text("ext_id").notNull(),
+    traderExtId: text("trader_ext_id"),
+    minPlayerLevel: smallint("min_player_level"),
+    wikiLink: text("wiki_link"),
+    names: jsonb("names").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.datasetId, t.extId] })],
+);
+
 /* ------------------------------------------------------------------ */
 /* Nutzer und Sitzungen – Anmeldung ausschließlich über Twitch.        */
 /* ------------------------------------------------------------------ */
@@ -258,16 +336,47 @@ export const userSession = pgTable(
   (t) => [index("user_session_user_idx").on(t.userId), index("user_session_expires_idx").on(t.expiresAt)],
 );
 
-/** Protokoll aller Admin-Aktionen an Datensätzen. */
+export const nameField = pgEnum("name_field", ["name", "short_name"]);
+
+/**
+ * Eigene Anzeigenamen für Items, gesetzt von Admins.
+ * Gilt über alle Datensätze hinweg (Schlüssel ist die Item-ID der Quelle),
+ * übersteht also jeden Import. Die Originalnamen bleiben in item_name.
+ */
+export const itemNameOverride = pgTable(
+  "item_name_override",
+  {
+    id: serial("id").primaryKey(),
+    extId: text("ext_id").notNull(),
+    lang: text("lang").notNull(),
+    field: nameField("field").notNull(),
+    value: text("value").notNull(),
+    note: text("note"),
+    /** Wert der Quelle zum Zeitpunkt der Änderung – zeigt später, ob sich das Original geändert hat. */
+    sourceValue: text("source_value"),
+    createdBy: integer("created_by").references(() => appUser.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("item_name_override_unique").on(t.extId, t.lang, t.field)],
+);
+
+/**
+ * Protokoll aller Admin-, Moderator- und Systemaktionen.
+ * Nur anhängen: Ein Datenbank-Trigger verbietet UPDATE und DELETE.
+ * details enthält bei Änderungen { before, after }.
+ */
 export const auditLog = pgTable(
   "audit_log",
   {
     id: serial("id").primaryKey(),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     actor: text("actor").notNull(),
+    /** Nutzer-ID des Handelnden, falls es ein angemeldeter Nutzer war (bewusst ohne Fremdschlüssel). */
+    actorUserId: integer("actor_user_id"),
     action: text("action").notNull(),
     target: text("target").notNull(),
     details: jsonb("details").notNull().default({}),
   },
-  (t) => [index("audit_log_at_idx").on(t.at)],
+  (t) => [index("audit_log_at_idx").on(t.at), index("audit_log_action_idx").on(t.action, t.at)],
 );

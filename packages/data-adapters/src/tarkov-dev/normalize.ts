@@ -1,12 +1,22 @@
-import { rawItemSchema, rawItemsFileSchema, rawTranslationFileSchema } from "./raw-schema.ts";
+import {
+  rawBartersFileSchema,
+  rawItemSchema,
+  rawItemsFileSchema,
+  rawTasksFileSchema,
+  rawTradersFileSchema,
+  rawTranslationFileSchema,
+} from "./raw-schema.ts";
 import type { RawItem } from "./raw-schema.ts";
 import type {
   GameMode,
   ItemName,
   Lang,
+  NormalizedBarter,
   NormalizedDataset,
   NormalizedItem,
   NormalizedSlot,
+  NormalizedTask,
+  NormalizedTrader,
   SlotName,
 } from "../types.ts";
 
@@ -59,6 +69,75 @@ export interface NormalizeInput {
   fetchedAt: string;
   itemsJson: unknown;
   translations: Partial<Record<Lang, TranslationTable>>;
+  /** traders-Datei der Quelle; fehlt sie, bleibt die Händlerliste leer. */
+  tradersJson?: unknown;
+  traderTranslations?: Partial<Record<Lang, TranslationTable>>;
+  bartersJson?: unknown;
+  tasksJson?: unknown;
+  taskTranslations?: Partial<Record<Lang, TranslationTable>>;
+}
+
+function namesFrom(tables: Partial<Record<Lang, TranslationTable>> | undefined, key: string): Partial<Record<Lang, string>> {
+  const names: Partial<Record<Lang, string>> = {};
+  for (const lang of Object.keys(tables ?? {}) as Lang[]) {
+    const value = lookup(tables?.[lang], key);
+    if (value) names[lang] = value;
+  }
+  return names;
+}
+
+function normalizeTraders(input: NormalizeInput): NormalizedTrader[] {
+  if (input.tradersJson === undefined) return [];
+  const parsed = rawTradersFileSchema.safeParse(input.tradersJson);
+  if (!parsed.success) throw new SourceFormatError("traders-Datei hat ein unbekanntes Format", [parsed.error.message]);
+  return Object.values(parsed.data.data)
+    .map((t) => ({
+      extId: t.id,
+      normalizedName: t.normalizedName,
+      currency: t.currency ?? null,
+      names: namesFrom(input.traderTranslations, t.name ?? `${t.id} Nickname`),
+      levels: t.levels
+        .map((l) => ({
+          level: l.level,
+          requiredPlayerLevel: l.requiredPlayerLevel,
+          requiredReputation: l.requiredReputation,
+          requiredCommerce: l.requiredCommerce,
+        }))
+        .sort((a, b) => a.level - b.level),
+    }))
+    .sort((a, b) => a.extId.localeCompare(b.extId));
+}
+
+function normalizeBarters(input: NormalizeInput): NormalizedBarter[] {
+  if (input.bartersJson === undefined) return [];
+  const parsed = rawBartersFileSchema.safeParse(input.bartersJson);
+  if (!parsed.success) throw new SourceFormatError("barters-Datei hat ein unbekanntes Format", [parsed.error.message]);
+  return parsed.data.data
+    .map((b) => ({
+      extId: b.id,
+      traderExtId: b.trader,
+      minTraderLevel: b.minTraderLevel,
+      taskExtId: b.taskUnlock ?? null,
+      buyLimit: toNullableNumber(b.buyLimit),
+      offered: { itemExtId: b.offeredItem.item, count: b.offeredItem.count },
+      required: b.requiredItems.map((r) => ({ itemExtId: r.item, count: r.count })),
+    }))
+    .sort((a, b) => a.extId.localeCompare(b.extId));
+}
+
+function normalizeTasks(input: NormalizeInput): NormalizedTask[] {
+  if (input.tasksJson === undefined) return [];
+  const parsed = rawTasksFileSchema.safeParse(input.tasksJson);
+  if (!parsed.success) throw new SourceFormatError("tasks-Datei hat ein unbekanntes Format", [parsed.error.message]);
+  return Object.values(parsed.data.data.tasks)
+    .map((t) => ({
+      extId: t.id,
+      traderExtId: t.trader ?? null,
+      minPlayerLevel: toNullableNumber(t.minPlayerLevel),
+      wikiLink: t.wikiLink ?? null,
+      names: namesFrom(input.taskTranslations, t.name ?? `${t.id} name`),
+    }))
+    .sort((a, b) => a.extId.localeCompare(b.extId));
 }
 
 export interface NormalizeResult {
@@ -140,6 +219,16 @@ export function normalizeTarkovDev(input: NormalizeInput): NormalizeResult {
       conflictingSlotIds: [...new Set(raw.conflictingSlotIds)],
       contains: raw.containsItems.map((c) => ({ itemExtId: c.item, count: c.count })),
       names,
+      minLevelForFlea: toNullableNumber(raw.minLevelForFlea),
+      traderOffers: raw.buyFromTrader.map((o) => ({
+        traderExtId: o.trader,
+        minTraderLevel: o.minTraderLevel,
+        price: o.price,
+        currency: o.currency,
+        priceRub: toNullableNumber(o.priceRUB),
+        taskExtId: o.taskUnlock ?? null,
+        buyLimit: toNullableNumber(o.buyLimit),
+      })),
     });
   }
 
@@ -163,6 +252,10 @@ export function normalizeTarkovDev(input: NormalizeInput): NormalizeResult {
       sourceUpdatedAt: newest,
       items,
       slotNames,
+      fleaMinPlayerLevel: toNullableNumber(file.data.data.fleaMarket?.minPlayerLevel),
+      traders: normalizeTraders(input),
+      tasks: normalizeTasks(input),
+      barters: normalizeBarters(input),
     },
     rejected,
   };

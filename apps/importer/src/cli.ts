@@ -3,6 +3,7 @@ import { parseArgs } from "node:util";
 import { fetchTarkovDevDataset, SourceFormatError, type GameMode } from "@tbh/data-adapters";
 import { banUser, setRole, unbanUser, type Role } from "@tbh/auth";
 import { connect } from "@tbh/db";
+import { NameOverrideError, removeNameOverride, setNameOverride, type NameField, type NameLang } from "@tbh/game-data";
 import {
   activateDataset,
   discardDataset,
@@ -25,6 +26,11 @@ Befehle:
   discard  <id>                      Vorschau verwerfen
   rollback --mode pvp|pve            Zum vorherigen Datensatz zurückkehren
   verify-presets <id>                Alle Presets mit der Kompatibilitäts-Engine prüfen
+  name-issues <id>                   Auffällige Item-Namen eines Datensatzes (kyrillisch, Kaliber)
+  name-set <item-id> --lang de|en --field name|short --value TEXT [--note TEXT]
+                                     Eigenen Anzeigenamen setzen (übersteht jeden Import)
+  name-remove <item-id> --lang de|en --field name|short
+                                     Eigenen Namen entfernen, danach gilt wieder die Quelle
 
   role  <login|twitch-id> user|moderator|admin   Rolle vergeben (Nutzer muss sich einmal angemeldet haben)
   ban   <login|twitch-id> --reason TEXT          Sperren und alle Sitzungen beenden
@@ -53,6 +59,10 @@ async function main(argv: string[]): Promise<void> {
       "base-url": { type: "string" },
       patch: { type: "string" },
       reason: { type: "string" },
+      lang: { type: "string" },
+      field: { type: "string" },
+      value: { type: "string" },
+      note: { type: "string" },
       "allow-duplicate": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
     },
@@ -133,6 +143,34 @@ async function main(argv: string[]): Promise<void> {
         if (r.problems.length > 0) process.exitCode = 2;
         break;
       }
+      case "name-issues": {
+        const row = await getDataset(db, parseId(arg));
+        if (!row) throw new ImportRefusedError(`Datensatz #${arg} existiert nicht.`);
+        const list = (row.dataset.report as { nameIssueList?: { itemExtId: string; lang: string; field: string; kind: string; value: string; detail: string; suggestion: string | null }[] }).nameIssueList ?? [];
+        console.log(`${list.length} auffällige Namen in Datensatz #${row.dataset.id}`);
+        for (const i of list) {
+          console.log(`  ${i.itemExtId}  ${i.lang}/${i.field}  ${i.kind}  „${i.value}“  ${i.detail}${i.suggestion ? `  → „${i.suggestion}“` : ""}`);
+        }
+        break;
+      }
+      case "name-set":
+      case "name-remove": {
+        const lang = values.lang;
+        const field = values.field === "short" ? "short_name" : values.field;
+        if (!arg || (lang !== "de" && lang !== "en") || (field !== "name" && field !== "short_name")) {
+          throw new ImportRefusedError(`Nutzung: ${command} <item-id> --lang de|en --field name|short${command === "name-set" ? " --value TEXT" : ""}`);
+        }
+        const who = { label: actor, userId: null };
+        if (command === "name-set") {
+          if (!values.value) throw new ImportRefusedError("--value fehlt.");
+          await setNameOverride(db, { extId: arg, lang: lang as NameLang, field: field as NameField, value: values.value, note: values.note ?? null }, who);
+          console.log(`Eigener Name gesetzt: ${arg} ${lang}/${field} = „${values.value.trim()}“`);
+        } else {
+          const removed = await removeNameOverride(db, { extId: arg, lang: lang as NameLang, field: field as NameField }, who);
+          console.log(removed ? "Eigener Name entfernt, es gilt wieder die Quelle." : "Es gab keinen eigenen Namen.");
+        }
+        break;
+      }
       case "role": {
         if (!arg || !["user", "moderator", "admin"].includes(arg2 ?? "")) throw new ImportRefusedError("Nutzung: role <login|twitch-id> user|moderator|admin");
         const user = await setRole(db, arg, arg2 as Role, actor);
@@ -179,7 +217,9 @@ function printReport(report: {
 }
 
 main(process.argv.slice(2)).catch((error: unknown) => {
-  if (error instanceof ImportRefusedError) {
+  if (error instanceof NameOverrideError) {
+    console.error(error.message);
+  } else if (error instanceof ImportRefusedError) {
     console.error(error.message);
     if (error.report) printReport(error.report);
   } else if (error instanceof Error && /unbekannt/.test(error.message)) {

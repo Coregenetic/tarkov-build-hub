@@ -15,6 +15,13 @@
       "when": 1794587455929,
       "tag": "0001_users_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794591158432,
+      "tag": "0002_phase5_procurement_names",
+      "breakpoints": true
     }
   ]
 }

@@ -140,3 +140,19 @@ export async function activeDatasetId(db: Database, mode: "pvp" | "pve"): Promis
     .where(and(eq(itemDataset.mode, mode), inArray(itemDataset.status, ["active"])));
   return row?.id ?? null;
 }
+
+export * from "./procurement.ts";
+export { sourcesFromNormalized } from "./sources.ts";
+export { loadProcurementData, type ProcurementData } from "./procurement-db.ts";
+export {
+  loadDisplayNames,
+  listNameOverrides,
+  setNameOverride,
+  removeNameOverride,
+  validateOverrideValue,
+  NameOverrideError,
+  type DisplayName,
+  type NameField,
+  type NameLang,
+  type Actor,
+} from "./names.ts";

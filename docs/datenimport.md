@@ -24,6 +24,38 @@
 5. **Zurückrollen** – `importer rollback --mode pvp` macht den vorherigen Datensatz wieder aktiv.
 
 Jede Aktion landet im `audit_log` mit Zeitpunkt und Ausführendem (`TBH_ACTOR`, sonst der Systembenutzer).
+Das Protokoll ist nur anhängbar: Ein Datenbank-Trigger lehnt `UPDATE`, `DELETE` und `TRUNCATE` ab.
+
+## Händler, Tausch und Flohmarkt
+
+Zusätzlich zu `items` lädt der Import `traders`, `traders_de/_en`, `barters`, `tasks` und `tasks_de/_en`.
+Fehlen Händler oder Händlerangebote, wird der Import abgelehnt – eine leere Beschaffung wäre irreführend.
+
+| Tabelle | Inhalt |
+| --- | --- |
+| `trader` | Händler mit Stufen (Spielerlevel, Ruf, Umsatz) und Namen |
+| `trader_offer` | Kaufangebote (`buyFromTrader`): Händler, Stufe, Preis, Währung, Aufgabe, Kauflimit |
+| `barter` | Tauschangebote: Händler, Stufe, Aufgabe, benötigte Items |
+| `task` | Aufgaben, die Angebote freischalten (Name, Händler, Wiki-Link) |
+| `item.min_level_for_flea` | eigene Flohmarkt-Sperre des Items |
+| `item_dataset.flea_min_player_level` | allgemeine Flohmarkt-Freischaltung (derzeit 15) |
+
+`min_level_for_flea = 0` bedeutet: keine eigene Sperre, es gilt die allgemeine Freischaltung.
+Items mit dem Typ `noFlea` sind nicht auf dem Flohmarkt handelbar.
+
+Die Beschaffung (`@tbh/game-data/procurement`) wählt je Teil ein Angebot: freie Angebote vor solchen mit Aufgabe,
+niedrigeres nötiges Spielerlevel zuerst, Kauf vor Tausch. Wird ein Händler ohnehin auf einer Stufe gebraucht,
+nimmt sie dessen Angebot statt eines anderen Händlers. Fehlt jedes Angebot, steht dort „kein Angebot in den Daten“.
+
+## Namensprüfung und eigene Namen
+
+Jeder Import prüft die Item-Namen und schreibt Funde in den Prüfbericht (`importer name-issues <id>`):
+- kyrillische Buchstaben in deutschen oder englischen Namen (z. B. `АК-74M` mit kyrillischem А und К),
+- Kaliber im Waffennamen, das nicht zum Kaliber-Feld passt (derzeit nur AK-102: `5,45x45mm` statt 5.56x45).
+
+Die Quelle wird nie verändert. Admins setzen stattdessen eigene Anzeigenamen (`item_name_override`),
+die jeden Import überstehen: `importer name-set <item-id> --lang de --field short --value "AK-74M"`.
+Entfernen mit `importer name-remove`. Beides wird mit vorher/nachher protokolliert.
 
 ## Regeln
 
@@ -43,3 +75,8 @@ Jede Aktion landet im `audit_log` mit Zeitpunkt und Ausführendem (`TBH_ACTOR`, 
 | Kompatibilitäts-Verweise | 40.853 |
 | Verweise ins Leere | 0 |
 | Dauer Import | rund 6 s |
+| Händler | 16 |
+| Kaufangebote | 2.677 |
+| Tauschangebote | 889 |
+| Aufgaben | 503 |
+| Auffällige Namen | 87 (de: 71 kyrillisch, 1 Kaliber; en: 15 kyrillisch) |

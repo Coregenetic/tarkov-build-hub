@@ -1,0 +1,1776 @@
+{
+  "id": "fb102337-f1f0-440d-9198-fe0a89e4dce8",
+  "prevId": "42311626-c363-4315-94a2-56ce23b727a9",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.app_user": {
+      "name": "app_user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "twitch_id": {
+          "name": "twitch_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "login": {
+          "name": "login",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "user_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'user'"
+        },
+        "banned_at": {
+          "name": "banned_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ban_reason": {
+          "name": "ban_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_login_at": {
+          "name": "last_login_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "app_user_login_idx": {
+          "name": "app_user_login_idx",
+          "columns": [
+            {
+              "expression": "login",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "app_user_twitch_id_unique": {
+          "name": "app_user_twitch_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "twitch_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.audit_log": {
+      "name": "audit_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "actor": {
+          "name": "actor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_user_id": {
+          "name": "actor_user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target": {
+          "name": "target",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "details": {
+          "name": "details",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {
+        "audit_log_at_idx": {
+          "name": "audit_log_at_idx",
+          "columns": [
+            {
+              "expression": "at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_log_action_idx": {
+          "name": "audit_log_action_idx",
+          "columns": [
+            {
+              "expression": "action",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.barter": {
+      "name": "barter",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ext_id": {
+          "name": "ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trader_ext_id": {
+          "name": "trader_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "min_trader_level": {
+          "name": "min_trader_level",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_ext_id": {
+          "name": "task_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buy_limit": {
+          "name": "buy_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "offered_ext_id": {
+          "name": "offered_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "offered_count": {
+          "name": "offered_count",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "required": {
+          "name": "required",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "barter_offered_idx": {
+          "name": "barter_offered_idx",
+          "columns": [
+            {
+              "expression": "dataset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "offered_ext_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "barter_dataset_id_item_dataset_id_fk": {
+          "name": "barter_dataset_id_item_dataset_id_fk",
+          "tableFrom": "barter",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "barter_dataset_id_ext_id_pk": {
+          "name": "barter_dataset_id_ext_id_pk",
+          "columns": [
+            "dataset_id",
+            "ext_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dataset_raw": {
+      "name": "dataset_raw",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "part": {
+          "name": "part",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gzip": {
+          "name": "gzip",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "byte_length": {
+          "name": "byte_length",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dataset_raw_dataset_id_item_dataset_id_fk": {
+          "name": "dataset_raw_dataset_id_item_dataset_id_fk",
+          "tableFrom": "dataset_raw",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "dataset_raw_dataset_id_part_pk": {
+          "name": "dataset_raw_dataset_id_part_pk",
+          "columns": [
+            "dataset_id",
+            "part"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.game_patch": {
+      "name": "game_patch",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "game_patch_label_unique": {
+          "name": "game_patch_label_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "label"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.item": {
+      "name": "item",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ext_id": {
+          "name": "ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "normalized_name": {
+          "name": "normalized_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "types": {
+          "name": "types",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "categories": {
+          "name": "categories",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "properties_type": {
+          "name": "properties_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "width": {
+          "name": "width",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height": {
+          "name": "height",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weight": {
+          "name": "weight",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "base_price": {
+          "name": "base_price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avg24h_price": {
+          "name": "avg24h_price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "low24h_price": {
+          "name": "low24h_price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_scan": {
+          "name": "last_scan",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_updated_at": {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "images": {
+          "name": "images",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "properties": {
+          "name": "properties",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conflicting_categories": {
+          "name": "conflicting_categories",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conflicting_slot_ids": {
+          "name": "conflicting_slot_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "min_level_for_flea": {
+          "name": "min_level_for_flea",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "item_types_idx": {
+          "name": "item_types_idx",
+          "columns": [
+            {
+              "expression": "types",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "item_normalized_name_idx": {
+          "name": "item_normalized_name_idx",
+          "columns": [
+            {
+              "expression": "dataset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "normalized_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "item_dataset_id_item_dataset_id_fk": {
+          "name": "item_dataset_id_item_dataset_id_fk",
+          "tableFrom": "item",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "item_dataset_id_ext_id_pk": {
+          "name": "item_dataset_id_ext_id_pk",
+          "columns": [
+            "dataset_id",
+            "ext_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.item_conflict": {
+      "name": "item_conflict",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_ext_id": {
+          "name": "item_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conflicting_ext_id": {
+          "name": "conflicting_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "item_conflict_dataset_id_item_dataset_id_fk": {
+          "name": "item_conflict_dataset_id_item_dataset_id_fk",
+          "tableFrom": "item_conflict",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "item_conflict_dataset_id_item_ext_id_conflicting_ext_id_pk": {
+          "name": "item_conflict_dataset_id_item_ext_id_conflicting_ext_id_pk",
+          "columns": [
+            "dataset_id",
+            "item_ext_id",
+            "conflicting_ext_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.item_contains": {
+      "name": "item_contains",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_ext_id": {
+          "name": "item_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contained_ext_id": {
+          "name": "contained_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort": {
+          "name": "sort",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "item_contains_dataset_id_item_dataset_id_fk": {
+          "name": "item_contains_dataset_id_item_dataset_id_fk",
+          "tableFrom": "item_contains",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "item_contains_dataset_id_item_ext_id_sort_pk": {
+          "name": "item_contains_dataset_id_item_ext_id_sort_pk",
+          "columns": [
+            "dataset_id",
+            "item_ext_id",
+            "sort"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.item_dataset": {
+      "name": "item_dataset",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "game_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fetched_at": {
+          "name": "fetched_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_updated_at": {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checksum": {
+          "name": "checksum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "dataset_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'preview'"
+        },
+        "patch_id": {
+          "name": "patch_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "item_count": {
+          "name": "item_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "flea_min_player_level": {
+          "name": "flea_min_player_level",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "report": {
+          "name": "report",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "activated_at": {
+          "name": "activated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "activated_by": {
+          "name": "activated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "item_dataset_one_active_per_mode": {
+          "name": "item_dataset_one_active_per_mode",
+          "columns": [
+            {
+              "expression": "mode",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"item_dataset\".\"status\" = 'active'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "item_dataset_mode_status_idx": {
+          "name": "item_dataset_mode_status_idx",
+          "columns": [
+            {
+              "expression": "mode",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "item_dataset_patch_id_game_patch_id_fk": {
+          "name": "item_dataset_patch_id_game_patch_id_fk",
+          "tableFrom": "item_dataset",
+          "tableTo": "game_patch",
+          "columnsFrom": [
+            "patch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.item_name": {
+      "name": "item_name",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ext_id": {
+          "name": "ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lang": {
+          "name": "lang",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "short_name": {
+          "name": "short_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "item_name_search_idx": {
+          "name": "item_name_search_idx",
+          "columns": [
+            {
+              "expression": "dataset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lang",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "item_name_dataset_id_item_dataset_id_fk": {
+          "name": "item_name_dataset_id_item_dataset_id_fk",
+          "tableFrom": "item_name",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "item_name_dataset_id_ext_id_lang_pk": {
+          "name": "item_name_dataset_id_ext_id_lang_pk",
+          "columns": [
+            "dataset_id",
+            "ext_id",
+            "lang"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.item_name_override": {
+      "name": "item_name_override",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ext_id": {
+          "name": "ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lang": {
+          "name": "lang",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field": {
+          "name": "field",
+          "type": "name_field",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_value": {
+          "name": "source_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "item_name_override_unique": {
+          "name": "item_name_override_unique",
+          "columns": [
+            {
+              "expression": "ext_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lang",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "field",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "item_name_override_created_by_app_user_id_fk": {
+          "name": "item_name_override_created_by_app_user_id_fk",
+          "tableFrom": "item_name_override",
+          "tableTo": "app_user",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.item_slot": {
+      "name": "item_slot",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_ext_id": {
+          "name": "item_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_ext_id": {
+          "name": "slot_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_id": {
+          "name": "name_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_key": {
+          "name": "name_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "required": {
+          "name": "required",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort": {
+          "name": "sort",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "item_slot_dataset_id_item_dataset_id_fk": {
+          "name": "item_slot_dataset_id_item_dataset_id_fk",
+          "tableFrom": "item_slot",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "item_slot_dataset_id_item_ext_id_slot_ext_id_pk": {
+          "name": "item_slot_dataset_id_item_ext_id_slot_ext_id_pk",
+          "columns": [
+            "dataset_id",
+            "item_ext_id",
+            "slot_ext_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.slot_allowed_item": {
+      "name": "slot_allowed_item",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_ext_id": {
+          "name": "item_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_ext_id": {
+          "name": "slot_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "allowed_ext_id": {
+          "name": "allowed_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "slot_allowed_item_reverse_idx": {
+          "name": "slot_allowed_item_reverse_idx",
+          "columns": [
+            {
+              "expression": "dataset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "allowed_ext_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "slot_allowed_item_dataset_id_item_dataset_id_fk": {
+          "name": "slot_allowed_item_dataset_id_item_dataset_id_fk",
+          "tableFrom": "slot_allowed_item",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "slot_allowed_item_dataset_id_item_ext_id_slot_ext_id_allowed_ext_id_pk": {
+          "name": "slot_allowed_item_dataset_id_item_ext_id_slot_ext_id_allowed_ext_id_pk",
+          "columns": [
+            "dataset_id",
+            "item_ext_id",
+            "slot_ext_id",
+            "allowed_ext_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.slot_filter": {
+      "name": "slot_filter",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_ext_id": {
+          "name": "item_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_ext_id": {
+          "name": "slot_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rule": {
+          "name": "rule",
+          "type": "slot_filter_rule",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "slot_filter_dataset_id_item_dataset_id_fk": {
+          "name": "slot_filter_dataset_id_item_dataset_id_fk",
+          "tableFrom": "slot_filter",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "slot_filter_dataset_id_item_ext_id_slot_ext_id_rule_value_pk": {
+          "name": "slot_filter_dataset_id_item_ext_id_slot_ext_id_rule_value_pk",
+          "columns": [
+            "dataset_id",
+            "item_ext_id",
+            "slot_ext_id",
+            "rule",
+            "value"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.slot_name": {
+      "name": "slot_name",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lang": {
+          "name": "lang",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "slot_name_dataset_id_item_dataset_id_fk": {
+          "name": "slot_name_dataset_id_item_dataset_id_fk",
+          "tableFrom": "slot_name",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "slot_name_dataset_id_key_lang_pk": {
+          "name": "slot_name_dataset_id_key_lang_pk",
+          "columns": [
+            "dataset_id",
+            "key",
+            "lang"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.task": {
+      "name": "task",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ext_id": {
+          "name": "ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trader_ext_id": {
+          "name": "trader_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "min_player_level": {
+          "name": "min_player_level",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wiki_link": {
+          "name": "wiki_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "names": {
+          "name": "names",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "task_dataset_id_item_dataset_id_fk": {
+          "name": "task_dataset_id_item_dataset_id_fk",
+          "tableFrom": "task",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "task_dataset_id_ext_id_pk": {
+          "name": "task_dataset_id_ext_id_pk",
+          "columns": [
+            "dataset_id",
+            "ext_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.trader": {
+      "name": "trader",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ext_id": {
+          "name": "ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "normalized_name": {
+          "name": "normalized_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "names": {
+          "name": "names",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "levels": {
+          "name": "levels",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "trader_dataset_id_item_dataset_id_fk": {
+          "name": "trader_dataset_id_item_dataset_id_fk",
+          "tableFrom": "trader",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "trader_dataset_id_ext_id_pk": {
+          "name": "trader_dataset_id_ext_id_pk",
+          "columns": [
+            "dataset_id",
+            "ext_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.trader_offer": {
+      "name": "trader_offer",
+      "schema": "",
+      "columns": {
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_ext_id": {
+          "name": "item_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort": {
+          "name": "sort",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trader_ext_id": {
+          "name": "trader_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "min_trader_level": {
+          "name": "min_trader_level",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_rub": {
+          "name": "price_rub",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "task_ext_id": {
+          "name": "task_ext_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buy_limit": {
+          "name": "buy_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "trader_offer_dataset_id_item_dataset_id_fk": {
+          "name": "trader_offer_dataset_id_item_dataset_id_fk",
+          "tableFrom": "trader_offer",
+          "tableTo": "item_dataset",
+          "columnsFrom": [
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "trader_offer_dataset_id_item_ext_id_sort_pk": {
+          "name": "trader_offer_dataset_id_item_ext_id_sort_pk",
+          "columns": [
+            "dataset_id",
+            "item_ext_id",
+            "sort"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_session": {
+      "name": "user_session",
+      "schema": "",
+      "columns": {
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "user_session_user_idx": {
+          "name": "user_session_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "user_session_expires_idx": {
+          "name": "user_session_expires_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "user_session_user_id_app_user_id_fk": {
+          "name": "user_session_user_id_app_user_id_fk",
+          "tableFrom": "user_session",
+          "tableTo": "app_user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.dataset_status": {
+      "name": "dataset_status",
+      "schema": "public",
+      "values": [
+        "preview",
+        "active",
+        "archived",
+        "discarded"
+      ]
+    },
+    "public.game_mode": {
+      "name": "game_mode",
+      "schema": "public",
+      "values": [
+        "pvp",
+        "pve"
+      ]
+    },
+    "public.name_field": {
+      "name": "name_field",
+      "schema": "public",
+      "values": [
+        "name",
+        "short_name"
+      ]
+    },
+    "public.slot_filter_rule": {
+      "name": "slot_filter_rule",
+      "schema": "public",
+      "values": [
+        "allowed_category",
+        "excluded_item",
+        "excluded_category"
+      ]
+    },
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "user",
+        "moderator",
+        "admin"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
