@@ -1,9 +1,9 @@
 import { and, arrayContains, asc, desc, eq, ilike, inArray, lte, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
-import { appUser, build, itemName, itemNameOverride, type Database } from "@tbh/db";
+import { appUser, banActiveSql, build, itemName, itemNameOverride, type Database } from "@tbh/db";
 import { PURPOSES, type Purpose } from "./input.ts";
 
-export const SORTS = ["new", "forks", "price", "ergonomics", "recoil"] as const;
+export const SORTS = ["new", "popular", "forks", "price", "ergonomics", "recoil"] as const;
 export type Sort = (typeof SORTS)[number];
 
 export const PAGE_SIZE = 24;
@@ -93,6 +93,8 @@ export interface SearchHit {
   recoilVertical: number | null;
   partsPrice: number | null;
   forkCount: number;
+  likeCount: number;
+  commentCount: number;
   latestVersion: number;
   createdAt: Date;
   updatedAt: Date;
@@ -149,6 +151,7 @@ export async function searchBuilds(db: Database, f: SearchFilters, nameDatasetId
 
   const order = {
     new: [desc(build.createdAt), desc(build.id)],
+    popular: [desc(build.likeCount), desc(build.forkCount), desc(build.createdAt)],
     forks: [desc(build.forkCount), desc(build.createdAt)],
     price: [sql`${build.partsPrice} ASC NULLS LAST`, desc(build.createdAt)],
     ergonomics: [sql`${build.ergonomics} DESC NULLS LAST`, desc(build.createdAt)],
@@ -170,6 +173,8 @@ export async function searchBuilds(db: Database, f: SearchFilters, nameDatasetId
         recoilVertical: build.recoilVertical,
         partsPrice: build.partsPrice,
         forkCount: build.forkCount,
+        likeCount: build.likeCount,
+        commentCount: build.commentCount,
         latestVersion: build.latestVersion,
         createdAt: build.createdAt,
         updatedAt: build.updatedAt,
@@ -179,7 +184,7 @@ export async function searchBuilds(db: Database, f: SearchFilters, nameDatasetId
       })
       .from(build)
       .innerJoin(appUser, eq(appUser.id, build.ownerId))
-      .where(and(condition, sql`${appUser.bannedAt} IS NULL`))
+      .where(and(condition, sql`NOT ${banActiveSql}`))
       .orderBy(...order)
       .limit(PAGE_SIZE)
       .offset((f.page - 1) * PAGE_SIZE),
@@ -187,7 +192,7 @@ export async function searchBuilds(db: Database, f: SearchFilters, nameDatasetId
       .select({ total: sql<number>`count(*)::int` })
       .from(build)
       .innerJoin(appUser, eq(appUser.id, build.ownerId))
-      .where(and(condition, sql`${appUser.bannedAt} IS NULL`)),
+      .where(and(condition, sql`NOT ${banActiveSql}`)),
   ]);
 
   return {

@@ -18,6 +18,7 @@ const STATUS: Record<BuildError["code"], number> = {
   ammo_not_allowed: 422,
   rate_limited: 429,
   limit_reached: 409,
+  reauth_required: 401,
 };
 
 /**

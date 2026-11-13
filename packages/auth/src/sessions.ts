@@ -1,5 +1,5 @@
 import { eq, lt, sql } from "drizzle-orm";
-import { appUser, auditLog, userSession, type Database } from "@tbh/db";
+import { appUser, auditLog, isBannedNow, userSession, type Database } from "@tbh/db";
 import { randomToken, sha256Hex } from "./crypto.ts";
 import { AuthError, type TwitchIdentity } from "./twitch.ts";
 
@@ -12,6 +12,8 @@ export interface SessionUser {
   displayName: string;
   avatarUrl: string | null;
   role: Role;
+  /** Beginn der aktuellen Sitzung (für Aktionen, die eine frische Anmeldung verlangen). */
+  sessionStartedAt?: Date;
 }
 
 const SLIDE_AFTER_MS = 60 * 60 * 1000;
@@ -37,7 +39,7 @@ export async function createSessionForIdentity(
       })
       .returning();
     if (!row) throw new Error("Nutzer konnte nicht gespeichert werden.");
-    if (row.bannedAt) throw new AuthError("banned", "Dieses Konto ist gesperrt.");
+    if (isBannedNow(row, now)) throw new AuthError("banned", "Dieses Konto ist gesperrt.");
 
     const token = randomToken(32);
     const expiresAt = new Date(now.getTime() + options.ttlDays * 86_400_000);
@@ -75,14 +77,14 @@ export async function getSessionUser(
     await db.delete(userSession).where(eq(userSession.tokenHash, hash));
     return null;
   }
-  if (row.user.bannedAt) return null;
+  if (isBannedNow(row.user, now)) return null;
   if (now.getTime() - row.session.lastSeenAt.getTime() > SLIDE_AFTER_MS) {
     await db
       .update(userSession)
       .set({ lastSeenAt: now, expiresAt: new Date(now.getTime() + options.ttlDays * 86_400_000) })
       .where(eq(userSession.tokenHash, hash));
   }
-  return toSessionUser(row.user);
+  return { ...toSessionUser(row.user), sessionStartedAt: row.session.createdAt };
 }
 
 export async function deleteSession(db: Database, token: string | undefined): Promise<void> {
@@ -120,7 +122,7 @@ export async function setRole(db: Database, loginOrTwitchId: string, role: Role,
 export async function banUser(db: Database, loginOrTwitchId: string, reason: string, actor: string): Promise<void> {
   await db.transaction(async (tx) => {
     const user = await findUser(tx as unknown as Database, loginOrTwitchId);
-    await tx.update(appUser).set({ bannedAt: sql`now()`, banReason: reason.slice(0, 500) }).where(eq(appUser.id, user.id));
+    await tx.update(appUser).set({ bannedAt: sql`now()`, bannedUntil: null, banReason: reason.slice(0, 500) }).where(eq(appUser.id, user.id));
     await tx.delete(userSession).where(eq(userSession.userId, user.id));
     await tx.insert(auditLog).values({ actor, action: "user.ban", target: `app_user:${user.id}`, details: { reason } });
   });
@@ -129,16 +131,16 @@ export async function banUser(db: Database, loginOrTwitchId: string, reason: str
 export async function unbanUser(db: Database, loginOrTwitchId: string, actor: string): Promise<void> {
   await db.transaction(async (tx) => {
     const user = await findUser(tx as unknown as Database, loginOrTwitchId);
-    await tx.update(appUser).set({ bannedAt: null, banReason: null }).where(eq(appUser.id, user.id));
+    await tx.update(appUser).set({ bannedAt: null, bannedUntil: null, banReason: null }).where(eq(appUser.id, user.id));
     await tx.insert(auditLog).values({ actor, action: "user.unban", target: `app_user:${user.id}`, details: {} });
   });
 }
 
 export async function getPublicProfile(db: Database, login: string) {
   const [row] = await db
-    .select({ id: appUser.id, login: appUser.login, displayName: appUser.displayName, avatarUrl: appUser.avatarUrl, role: appUser.role, createdAt: appUser.createdAt, bannedAt: appUser.bannedAt })
+    .select({ id: appUser.id, login: appUser.login, displayName: appUser.displayName, avatarUrl: appUser.avatarUrl, role: appUser.role, createdAt: appUser.createdAt, bannedAt: appUser.bannedAt, bannedUntil: appUser.bannedUntil })
     .from(appUser)
     .where(eq(appUser.login, login.toLowerCase()));
-  if (!row || row.bannedAt) return null;
+  if (!row || isBannedNow(row)) return null;
   return { id: row.id, login: row.login, displayName: row.displayName, avatarUrl: row.avatarUrl, role: row.role, createdAt: row.createdAt };
 }

@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { and, count, desc, eq, gt, ne, sql } from "drizzle-orm";
 import type { BuildNode, GameData, Issue } from "@tbh/compat-engine";
-import { appUser, build, buildDraft, buildVersion, gamePatch, itemDataset, type Database } from "@tbh/db";
+import { appUser, build, buildDraft, buildVersion, gamePatch, isBannedNow, itemDataset, type Database } from "@tbh/db";
 import { evaluateTree } from "./evaluate.ts";
 import { InputError, LIMITS, parseDraftInput, parsePublishInput, type Purpose } from "./input.ts";
 
@@ -15,7 +15,8 @@ export type BuildErrorCode =
   | "not_a_weapon"
   | "ammo_not_allowed"
   | "rate_limited"
-  | "limit_reached";
+  | "limit_reached"
+  | "reauth_required";
 
 export class BuildError extends Error {
   constructor(
@@ -54,9 +55,9 @@ export function newPublicId(length = 10): string {
 }
 
 async function requireActiveUser(db: Database, actor: Actor) {
-  const [u] = await db.select({ id: appUser.id, bannedAt: appUser.bannedAt }).from(appUser).where(eq(appUser.id, actor.id));
+  const [u] = await db.select({ id: appUser.id, bannedAt: appUser.bannedAt, bannedUntil: appUser.bannedUntil }).from(appUser).where(eq(appUser.id, actor.id));
   if (!u) throw new BuildError("forbidden", "Unbekannter Nutzer.");
-  if (u.bannedAt) throw new BuildError("banned", "Dein Konto ist gesperrt.");
+  if (isBannedNow(u)) throw new BuildError("banned", "Dein Konto ist gesperrt.");
 }
 
 async function activeDataset(db: Database, mode: "pvp" | "pve") {

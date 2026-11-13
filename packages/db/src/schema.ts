@@ -328,6 +328,8 @@ export const appUser = pgTable(
     avatarUrl: text("avatar_url"),
     role: userRole("role").notNull().default("user"),
     bannedAt: timestamp("banned_at", { withTimezone: true }),
+    /** Ende einer zeitlichen Sperre; null bei gesetztem banned_at = dauerhaft. */
+    bannedUntil: timestamp("banned_until", { withTimezone: true }),
     banReason: text("ban_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }).notNull().defaultNow(),
@@ -438,6 +440,8 @@ export const build = pgTable(
     partIds: text("part_ids").array().notNull().default(sql`'{}'::text[]`),
     /** Öffentliche Varianten (für Sortierung „meiste Varianten“). */
     forkCount: integer("fork_count").notNull().default(0),
+    likeCount: integer("like_count").notNull().default(0),
+    commentCount: integer("comment_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     hiddenReason: text("hidden_reason"),
@@ -510,3 +514,138 @@ export const buildDraft = pgTable(
   },
   (t) => [index("build_draft_owner_idx").on(t.ownerId, t.updatedAt)],
 );
+
+/* ------------------------------------------------------------------ */
+/* Community                                                           */
+/* ------------------------------------------------------------------ */
+
+export const buildLike = pgTable(
+  "build_like",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => appUser.id, { onDelete: "cascade" }),
+    buildId: integer("build_id")
+      .notNull()
+      .references(() => build.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.buildId] }), index("build_like_build_idx").on(t.buildId)],
+);
+
+export const buildBookmark = pgTable(
+  "build_bookmark",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => appUser.id, { onDelete: "cascade" }),
+    buildId: integer("build_id")
+      .notNull()
+      .references(() => build.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.buildId] })],
+);
+
+export const commentStatus = pgEnum("comment_status", ["visible", "hidden", "deleted"]);
+
+export const buildComment = pgTable(
+  "build_comment",
+  {
+    id: serial("id").primaryKey(),
+    buildId: integer("build_id")
+      .notNull()
+      .references(() => build.id, { onDelete: "cascade" }),
+    authorId: integer("author_id")
+      .notNull()
+      .references(() => appUser.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    status: commentStatus("status").notNull().default("visible"),
+    hiddenReason: text("hidden_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+  },
+  (t) => [index("build_comment_build_idx").on(t.buildId, t.createdAt), index("build_comment_author_idx").on(t.authorId)],
+);
+
+export const reportTarget = pgEnum("report_target", ["build", "comment"]);
+export const reportReason = pgEnum("report_reason", ["spam", "offensive", "wrong_info", "other"]);
+export const reportStatus = pgEnum("report_status", ["open", "dismissed", "actioned"]);
+
+export const report = pgTable(
+  "report",
+  {
+    id: serial("id").primaryKey(),
+    targetType: reportTarget("target_type").notNull(),
+    targetId: integer("target_id").notNull(),
+    reporterId: integer("reporter_id")
+      .notNull()
+      .references(() => appUser.id, { onDelete: "cascade" }),
+    reason: reportReason("reason").notNull(),
+    note: text("note").notNull().default(""),
+    status: reportStatus("status").notNull().default("open"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    resolvedBy: integer("resolved_by"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    outcome: text("outcome"),
+  },
+  (t) => [
+    index("report_status_idx").on(t.status, t.createdAt),
+    index("report_target_idx").on(t.targetType, t.targetId),
+    uniqueIndex("report_open_unique").on(t.targetType, t.targetId, t.reporterId).where(sql`status = 'open'`),
+  ],
+);
+
+/* ------------------------------------------------------------------ */
+/* Statistik ohne Tracking: nur Tageszähler                            */
+/* ------------------------------------------------------------------ */
+
+/** Aktive Nutzer je Tag (eine Zeile je Nutzer und Tag, keine IP, keine Seitenaufrufe). Wird nach 90 Tagen gelöscht. */
+export const userActivityDay = pgTable(
+  "user_activity_day",
+  {
+    day: text("day").notNull(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => appUser.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.userId] })],
+);
+
+/** Tageszähler, z. B. logins, comments, searches. */
+export const dailyCounter = pgTable(
+  "daily_counter",
+  {
+    day: text("day").notNull(),
+    key: text("key").notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.key] })],
+);
+
+/** Suchbegriffe ohne Treffer (kleingeschrieben, gekürzt), je Tag gezählt. */
+export const searchMiss = pgTable(
+  "search_miss",
+  {
+    day: text("day").notNull(),
+    query: text("query").notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.query] })],
+);
+
+/** Einstellungen der Seite (Hinweisbanner, Wartungsmodus). */
+export const siteSetting = pgTable("site_setting", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedBy: integer("updated_by"),
+});
+
+/** Ist eine Sperre jetzt wirksam? (dauerhaft oder zeitlich noch nicht abgelaufen) */
+export function isBannedNow(user: { bannedAt: Date | null; bannedUntil: Date | null }, now = new Date()): boolean {
+  return user.bannedAt !== null && (user.bannedUntil === null || user.bannedUntil > now);
+}
+
+/** SQL-Gegenstück zu isBannedNow für Abfragen. */
+export const banActiveSql = sql`(${appUser.bannedAt} IS NOT NULL AND (${appUser.bannedUntil} IS NULL OR ${appUser.bannedUntil} > now()))`;
