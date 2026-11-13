@@ -14,7 +14,8 @@ Fan-Projekt, nicht mit Battlestate Games verbunden. Spieldaten und Bilder stamme
 | 3 | Next.js-App, Twitch-Login, Profile, Rollen | erledigt |
 | 4 | Gunsmith-Entwurf (Variante B „Werkbank“) | erledigt |
 | 5 | Gunsmith: Aufbauansicht, Teile tauschen, Munition, Beschaffung (Händler/Flohmarkt), Sprache für Item-Namen, Handy-Ansicht, Entwurf im Browser; Import um Händler, Tausch, Aufgaben, Kategorien und Namensprüfung erweitert | erledigt |
-| 6–9 | Veröffentlichen und Entwürfe im Konto, Discovery, Community und Admin-Bereich, Go-live | offen |
+| 6 | Veröffentlichen mit Server-Prüfung, unveränderliche Versionen je Patch, Varianten mit Herkunft, Entwürfe im Konto, Build-Seite, Profil | erledigt |
+| 7–9 | Discovery und Suche, Community und Admin-Bereich, Go-live | offen |
 
 ## Aufbau
 

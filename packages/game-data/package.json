@@ -6,7 +6,8 @@
   "description": "L\u00e4dt einen Datensatz als GameData f\u00fcr die Kompatibilit\u00e4ts-Engine.",
   "exports": {
     ".": "./src/index.ts",
-    "./procurement": "./src/procurement.ts"
+    "./procurement": "./src/procurement.ts",
+    "./stats": "./src/stats.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",

@@ -19,12 +19,14 @@ interface Props {
   onPick: (path: string[]) => void;
   /** Auf die volle Breite einpassen (Handy: Übersicht, gewählt wird in der Liste). */
   fit?: boolean;
+  /** Nur ansehen (Build-Seite): keine Auswahl, kein Hinweis. */
+  readOnly?: boolean;
 }
 
 const CAPTION = 18;
 
 /** Aufbauansicht: Kästen aus layoutBuild, als Ganzes auf die verfügbare Breite skaliert. */
-export function Stage({ bundle, build, layout, lang, t, focusedKey, errorPaths, onPick, fit = false }: Props) {
+export function Stage({ bundle, build, layout, lang, t, focusedKey, errorPaths, onPick, fit = false, readOnly = false }: Props) {
   const wrap = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState(1100);
 
@@ -68,16 +70,22 @@ export function Stage({ bundle, build, layout, lang, t, focusedKey, errorPaths, 
             const capCls = [s.caption, focused ? s.captionFocus : "", error ? s.captionError : ""].join(" ");
             return (
               <div key={b.key || "root"}>
-                <button
-                  type="button"
-                  className={cls}
-                  style={{ left: b.x, top: b.y, width: b.w, height: b.h }}
-                  aria-label={name ? `${slotName}: ${name.name}` : `${slotName}: ${t.empty_slot}`}
-                  aria-pressed={focused}
-                  onClick={() => onPick(b.path)}
-                >
-                  {name ? item?.img ? <img src={item.img} alt="" loading="lazy" decoding="async" /> : <span>{name.short}</span> : <span aria-hidden="true">+</span>}
-                </button>
+                {readOnly ? (
+                  <span className={cls} style={{ left: b.x, top: b.y, width: b.w, height: b.h, cursor: "default", boxShadow: "none" }} title={name ? `${slotName}: ${name.name}` : undefined}>
+                    {name ? item?.img ? <img src={item.img} alt={`${slotName}: ${name.name}`} loading="lazy" decoding="async" /> : <span>{name.short}</span> : null}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className={cls}
+                    style={{ left: b.x, top: b.y, width: b.w, height: b.h }}
+                    aria-label={name ? `${slotName}: ${name.name}` : `${slotName}: ${t.empty_slot}`}
+                    aria-pressed={focused}
+                    onClick={() => onPick(b.path)}
+                  >
+                    {name ? item?.img ? <img src={item.img} alt="" loading="lazy" decoding="async" /> : <span>{name.short}</span> : <span aria-hidden="true">+</span>}
+                  </button>
+                )}
                 <span className={capCls} style={{ left: b.x - 5, top: b.y + b.h + 1, width: b.w + 10, height: CAPTION }} aria-hidden="true">
                   {name ? name.short : `+ ${slotName}`}
                 </span>
@@ -86,7 +94,7 @@ export function Stage({ bundle, build, layout, lang, t, focusedKey, errorPaths, 
           })}
         </div>
       </div>
-      <p className={s.hint}>{fit ? t.stage_hint_narrow : t.stage_hint}</p>
+      {!readOnly && <p className={s.hint}>{fit ? t.stage_hint_narrow : t.stage_hint}</p>}
     </div>
   );
 }

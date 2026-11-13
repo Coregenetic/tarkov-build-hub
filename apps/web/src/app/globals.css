@@ -188,3 +188,10 @@ a:hover {
     font-size: 14px;
   }
 }
+
+.btn:disabled {
+  background: var(--panel-2);
+  border-color: var(--panel-2);
+  color: var(--faint);
+  cursor: not-allowed;
+}

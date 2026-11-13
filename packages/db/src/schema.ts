@@ -395,3 +395,106 @@ export const auditLog = pgTable(
   },
   (t) => [index("audit_log_at_idx").on(t.at), index("audit_log_action_idx").on(t.action, t.at)],
 );
+
+/* ------------------------------------------------------------------ */
+/* Builds                                                              */
+/* ------------------------------------------------------------------ */
+
+export const buildStatus = pgEnum("build_status", ["published", "hidden", "deleted"]);
+export const buildVisibility = pgEnum("build_visibility", ["public", "unlisted"]);
+export const buildPurpose = pgEnum("build_purpose", ["allround", "cqb", "long_range", "silent", "budget"]);
+
+/**
+ * Ein veröffentlichter Build. Der Inhalt steckt in build_version;
+ * hier stehen nur Eigentümer, Sichtbarkeit und der Stand der neuesten Version.
+ */
+export const build = pgTable(
+  "build",
+  {
+    id: serial("id").primaryKey(),
+    /** Öffentliche, nicht fortlaufende Kennung für Links (/b/…). */
+    publicId: text("public_id").notNull(),
+    ownerId: integer("owner_id")
+      .notNull()
+      .references(() => appUser.id, { onDelete: "restrict" }),
+    mode: gameMode("mode").notNull(),
+    weaponExtId: text("weapon_ext_id").notNull(),
+    title: text("title").notNull(),
+    purpose: buildPurpose("purpose").notNull(),
+    visibility: buildVisibility("visibility").notNull().default("public"),
+    status: buildStatus("status").notNull().default("published"),
+    latestVersion: integer("latest_version").notNull(),
+    /** Herkunft einer Variante: die konkrete Version des Originals. */
+    forkedFromVersionId: integer("forked_from_version_id"),
+    /** Herkunft als Text – bleibt, auch wenn das Original gelöscht wird. */
+    forkedFromLabel: text("forked_from_label"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    hiddenReason: text("hidden_reason"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("build_public_id_unique").on(t.publicId),
+    index("build_owner_idx").on(t.ownerId),
+    index("build_weapon_idx").on(t.mode, t.weaponExtId),
+    index("build_fork_idx").on(t.forkedFromVersionId),
+  ],
+);
+
+/**
+ * Unveränderlicher Schnappschuss einer Veröffentlichung (Trigger verbietet UPDATE).
+ * Hält Datensatz und Patch fest, den vollständigen Teilebaum und die damals berechneten Werte.
+ */
+export const buildVersion = pgTable(
+  "build_version",
+  {
+    id: serial("id").primaryKey(),
+    buildId: integer("build_id")
+      .notNull()
+      .references(() => build.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    datasetId: integer("dataset_id")
+      .notNull()
+      .references(() => itemDataset.id, { onDelete: "restrict" }),
+    patchLabel: text("patch_label"),
+    title: text("title").notNull(),
+    notes: text("notes").notNull().default(""),
+    purpose: buildPurpose("purpose").notNull(),
+    /** BuildNode: { itemId, slots: { slotId: BuildNode } } */
+    tree: jsonb("tree").notNull(),
+    ammoExtId: text("ammo_ext_id"),
+    /** Alle verbauten Item-IDs inkl. Waffe (für Suche und Filter). */
+    partIds: text("part_ids").array().notNull(),
+    /** Werte zum Zeitpunkt der Veröffentlichung. */
+    stats: jsonb("stats").notNull(),
+    /** Beschaffung zum Zeitpunkt der Veröffentlichung. */
+    procurement: jsonb("procurement").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("build_version_unique").on(t.buildId, t.version), index("build_version_parts_idx").using("gin", t.partIds)],
+);
+
+/** Entwürfe gehören genau einem Nutzer und sind nie öffentlich. */
+export const buildDraft = pgTable(
+  "build_draft",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: integer("owner_id")
+      .notNull()
+      .references(() => appUser.id, { onDelete: "cascade" }),
+    mode: gameMode("mode").notNull(),
+    weaponExtId: text("weapon_ext_id").notNull(),
+    title: text("title").notNull().default(""),
+    notes: text("notes").notNull().default(""),
+    purpose: buildPurpose("purpose"),
+    tree: jsonb("tree").notNull(),
+    ammoExtId: text("ammo_ext_id"),
+    /** Gesetzt, wenn der Entwurf eine neue Version eines eigenen Builds wird. */
+    baseBuildId: integer("base_build_id").references(() => build.id, { onDelete: "set null" }),
+    forkedFromVersionId: integer("forked_from_version_id").references(() => buildVersion.id, { onDelete: "set null" }),
+    forkedFromLabel: text("forked_from_label"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("build_draft_owner_idx").on(t.ownerId, t.updatedAt)],
+);

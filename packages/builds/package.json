@@ -1,0 +1,24 @@
+{
+  "name": "@tbh/builds",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Entw\u00fcrfe, Ver\u00f6ffentlichen, Versionen und Varianten von Builds \u2013 serverseitig gepr\u00fcft.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json --outDir dist"
+  },
+  "dependencies": {
+    "@tbh/compat-engine": "workspace:*",
+    "@tbh/db": "workspace:*",
+    "@tbh/game-data": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tbh/data-adapters": "workspace:*"
+  }
+}

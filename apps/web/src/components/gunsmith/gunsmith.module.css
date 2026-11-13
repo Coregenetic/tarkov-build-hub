@@ -687,3 +687,28 @@ button.stat:hover {
     max-height: none;
   }
 }
+
+.dialog {
+  position: fixed;
+  z-index: 41;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(800px, calc(100vw - 24px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid #2a2d30;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.field {
+  height: 46px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+}

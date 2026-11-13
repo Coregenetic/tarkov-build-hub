@@ -136,9 +136,9 @@ export async function unbanUser(db: Database, loginOrTwitchId: string, actor: st
 
 export async function getPublicProfile(db: Database, login: string) {
   const [row] = await db
-    .select({ login: appUser.login, displayName: appUser.displayName, avatarUrl: appUser.avatarUrl, role: appUser.role, createdAt: appUser.createdAt, bannedAt: appUser.bannedAt })
+    .select({ id: appUser.id, login: appUser.login, displayName: appUser.displayName, avatarUrl: appUser.avatarUrl, role: appUser.role, createdAt: appUser.createdAt, bannedAt: appUser.bannedAt })
     .from(appUser)
     .where(eq(appUser.login, login.toLowerCase()));
   if (!row || row.bannedAt) return null;
-  return { login: row.login, displayName: row.displayName, avatarUrl: row.avatarUrl, role: row.role, createdAt: row.createdAt };
+  return { id: row.id, login: row.login, displayName: row.displayName, avatarUrl: row.avatarUrl, role: row.role, createdAt: row.createdAt };
 }

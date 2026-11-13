@@ -316,3 +316,23 @@ async function buildWeaponBundle(datasetId: number, weaponId: string): Promise<W
     },
   };
 }
+
+/** Name und Bild für eine Liste von Waffen (Karten auf Profil und später im Feed). */
+export async function weaponCards(datasetId: number, ids: readonly string[], lang: Lang): Promise<Map<string, { name: NamePair; img: string | null }>> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Map();
+  const [rows, names] = await Promise.all([
+    db()
+      .select({ extId: item.extId, images: item.images })
+      .from(item)
+      .where(and(eq(item.datasetId, datasetId), inArray(item.extId, unique))),
+    loadDisplayNames(db(), datasetId, lang, unique),
+  ]);
+  return new Map(
+    rows.map((r) => {
+      const images = r.images as Record<string, string | null>;
+      const n = names.get(r.extId);
+      return [r.extId, { name: { name: n?.name ?? "?", short: n?.shortName ?? "?" }, img: images["image512"] ?? images["base"] ?? null }];
+    }),
+  );
+}

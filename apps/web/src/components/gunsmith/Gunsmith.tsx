@@ -9,6 +9,7 @@ import {
   validateBuild,
   type BuildNode,
   type BuildPath,
+  type Issue,
 } from "@tbh/compat-engine";
 import { layoutBuild, type LayoutSlot } from "@/gunsmith/layout";
 import type { GunsmithMessages } from "@/gunsmith/messages";
@@ -19,6 +20,7 @@ import { summarizeProcurement } from "@tbh/game-data/procurement";
 import { AmmoPicker } from "./AmmoPicker";
 import { PartPicker } from "./PartPicker";
 import { Procurement } from "./Procurement";
+import { PURPOSES, PublishDialog, type Purpose } from "./PublishDialog";
 import { Sheet } from "./Sheet";
 import { SlotTree } from "./SlotTree";
 import { Stage } from "./Stage";
@@ -30,6 +32,18 @@ interface Draft {
   build: BuildNode;
   ammo: string | null;
   title: string;
+  notes: string;
+  purpose: Purpose | null;
+}
+
+/** Konto-Bezug: angemeldet, gespeicherter Entwurf, Herkunft. */
+export interface AccountContext {
+  loggedIn: boolean;
+  loginUrl: string;
+  draftId: number | null;
+  initial: Draft | null;
+  baseBuild: { publicId: string; title: string } | null;
+  forkedFromLabel: string | null;
 }
 
 interface Props {
@@ -37,6 +51,7 @@ interface Props {
   uiLang: Lang;
   itemLang: Lang;
   t: GunsmithMessages;
+  account: AccountContext;
 }
 
 /** Slots, die auch leer als „+“-Kasten erscheinen. */
@@ -57,11 +72,11 @@ function useNarrow(): boolean {
 
 const draftKey = (b: WeaponBundle) => `tbh:draft:v1:${b.mode}:${b.weapon.id}`;
 
-export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
+export function Gunsmith({ bundle, uiLang, itemLang, t, account }: Props) {
   const data = useMemo(() => createGameData(bundle.datasetId, Object.values(bundle.items).map((i) => itemFromPlain(i.plain))), [bundle]);
   const weaponName = pickName(bundle.items[bundle.weapon.id]?.names, itemLang);
   const initialAmmo = bundle.weapon.defaultAmmo && bundle.ammo.some((a) => a.id === bundle.weapon.defaultAmmo) ? bundle.weapon.defaultAmmo : (bundle.ammo[0]?.id ?? null);
-  const initial: Draft = { build: bundle.defaultBuild, ammo: initialAmmo, title: "" };
+  const initial: Draft = account.initial ?? { build: bundle.defaultBuild, ammo: initialAmmo, title: "", notes: "", purpose: null };
 
   const [draft, setDraft] = useState<Draft>(initial);
   const [past, setPast] = useState<Draft[]>([]);
@@ -70,29 +85,88 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
   const [detachedNote, setDetachedNote] = useState<string[] | null>(null);
   const [restored, setRestored] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">(account.draftId ? "saved" : "idle");
+  const [publishing, setPublishing] = useState(false);
   const loaded = useRef(false);
+  const dirty = useRef(false);
+  const draftIdRef = useRef<number | null>(account.draftId);
+  const inFlight = useRef<Promise<boolean> | null>(null);
   const narrow = useNarrow();
 
-  // Entwurf aus diesem Browser wiederherstellen (nur einmal, nach dem ersten Rendern).
+  // Ohne Konto-Entwurf: Entwurf aus diesem Browser wiederherstellen (nur einmal).
   useEffect(() => {
     if (loaded.current) return;
     loaded.current = true;
+    if (account.initial) return;
     try {
       const raw = window.localStorage.getItem(draftKey(bundle));
       if (!raw) return;
-      const parsed = JSON.parse(raw) as Draft & { savedAt?: string };
+      const parsed = JSON.parse(raw) as Partial<Draft> & { savedAt?: string };
       if (parsed && typeof parsed === "object" && parsed.build?.itemId === bundle.weapon.id) {
-        setDraft({ build: parsed.build, ammo: typeof parsed.ammo === "string" ? parsed.ammo : initialAmmo, title: typeof parsed.title === "string" ? parsed.title.slice(0, 80) : "" });
+        setDraft({
+          build: parsed.build,
+          ammo: typeof parsed.ammo === "string" ? parsed.ammo : initialAmmo,
+          title: typeof parsed.title === "string" ? parsed.title.slice(0, 80) : "",
+          notes: typeof parsed.notes === "string" ? parsed.notes.slice(0, 2000) : "",
+          purpose: (PURPOSES as readonly string[]).includes(parsed.purpose ?? "") ? (parsed.purpose as Purpose) : null,
+        });
         setRestored(parsed.savedAt ?? "");
+        // Angemeldet: den Browser-Entwurf ins Konto übernehmen.
+        if (account.loggedIn) dirty.current = true;
       }
     } catch {
       /* Speicher nicht verfügbar oder kaputt: mit der Vorlage starten. */
     }
   }, []);
 
-  // Automatisch speichern.
+  /** Speichert den Entwurf im Konto. Liefert true bei Erfolg. */
+  const saveToAccount = useCallback(
+    async (d: Draft): Promise<boolean> => {
+      while (inFlight.current) await inFlight.current;
+      const run = (async () => {
+        setSaveState("saving");
+        const body = JSON.stringify({ mode: bundle.mode, title: d.title, notes: d.notes, purpose: d.purpose, tree: d.build, ammo: d.ammo });
+        const id = draftIdRef.current;
+        try {
+          const res = await fetch(id ? `/api/drafts/${id}` : "/api/drafts", { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body });
+          if (!res.ok) throw new Error(String(res.status));
+          const json = (await res.json()) as { id: number };
+          if (!id) {
+            draftIdRef.current = json.id;
+            const url = new URL(window.location.href);
+            url.searchParams.set("entwurf", String(json.id));
+            window.history.replaceState(null, "", url);
+            try {
+              window.localStorage.removeItem(draftKey(bundle));
+            } catch {
+              /* egal */
+            }
+          }
+          setSaveState("saved");
+          return true;
+        } catch {
+          setSaveState("error");
+          return false;
+        }
+      })();
+      inFlight.current = run;
+      try {
+        return await run;
+      } finally {
+        inFlight.current = null;
+      }
+    },
+    [bundle],
+  );
+
+  // Automatisch speichern: angemeldet im Konto (nach der ersten Änderung), sonst im Browser.
   useEffect(() => {
     if (!loaded.current) return;
+    if (account.loggedIn) {
+      if (!dirty.current) return;
+      const handle = window.setTimeout(() => void saveToAccount(draft), 1200);
+      return () => window.clearTimeout(handle);
+    }
     const handle = window.setTimeout(() => {
       try {
         const at = new Date();
@@ -103,13 +177,14 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
       }
     }, 400);
     return () => window.clearTimeout(handle);
-  }, [draft, bundle]);
+  }, [draft, bundle, account.loggedIn, saveToAccount]);
 
   const draftRef = useRef(draft);
   useEffect(() => {
     draftRef.current = draft;
   }, [draft]);
   const commit = useCallback((next: Draft) => {
+    dirty.current = true;
     setPast((p) => [...p, draftRef.current].slice(-50));
     setFuture([]);
     setDraft(next);
@@ -118,6 +193,7 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
   const undo = () => {
     const prev = past.at(-1);
     if (!prev) return;
+    dirty.current = true;
     setPast(past.slice(0, -1));
     setFuture([draft, ...future]);
     setDraft(prev);
@@ -126,6 +202,7 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
   const redo = () => {
     const next = future[0];
     if (!next) return;
+    dirty.current = true;
     setFuture(future.slice(1));
     setPast([...past, draft]);
     setDraft(next);
@@ -217,7 +294,11 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
       <div className={s.bar}>
         <div className={s.titleWrap}>
           <span className={s.kicker}>
-            {t.draft} · {weaponName.name}
+            {account.baseBuild
+              ? `${t.new_version_of} „${account.baseBuild.title}“`
+              : account.forkedFromLabel
+                ? `${t.variant_of} ${account.forkedFromLabel}`
+                : `${t.draft} · ${weaponName.name}`}
           </span>
           <label htmlFor="build-title" className="visually-hidden">
             {t.title_label}
@@ -228,7 +309,10 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
             value={draft.title}
             maxLength={80}
             placeholder={`${weaponName.short} – ${t.title_placeholder}`}
-            onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+            onChange={(e) => {
+              dirty.current = true;
+              setDraft({ ...draft, title: e.target.value });
+            }}
           />
         </div>
         {bundle.presets.length > 1 && (
@@ -268,11 +352,27 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
         </button>
         <span className={s.saved} aria-live="polite">
           {bundle.mode.toUpperCase()} · Patch {bundle.patch ?? "—"}
-          {savedAt ? ` · ${t.saved_local}` : ""}
+          {account.loggedIn
+            ? saveState === "saving"
+              ? ` · ${t.saving}`
+              : saveState === "saved"
+                ? ` · ${t.saved_account}`
+                : saveState === "error"
+                  ? ` · ${t.save_failed}`
+                  : ""
+            : savedAt
+              ? ` · ${t.saved_local}`
+              : ""}
         </span>
-        <span className={`btn ${s.hideNarrow}`} aria-disabled="true" title={t.publish_soon}>
-          {t.publish}
-        </span>
+        {account.loggedIn ? (
+          <button type="button" className="btn btn-primary" onClick={() => setPublishing(true)}>
+            {t.publish}
+          </button>
+        ) : (
+          <a className="btn btn-primary" href={account.loginUrl} title={t.login_to_publish}>
+            {t.publish}
+          </a>
+        )}
       </div>
 
       {restored !== null && (
@@ -438,6 +538,42 @@ export function Gunsmith({ bundle, uiLang, itemLang, t }: Props) {
           </section>
         );
       })()}
+
+      {publishing && (
+        <PublishDialog
+          bundle={bundle}
+          lang={itemLang}
+          t={t}
+          initial={{ title: draft.title, notes: draft.notes, purpose: draft.purpose, visibility: "public" }}
+          checks={{ valid: validation.valid, complete: validation.complete, ammo: draft.ammo === null || ammoFits }}
+          provenance={account.forkedFromLabel}
+          partCount={stats.partCount + 1}
+          onCancel={(meta) => {
+            setPublishing(false);
+            if (meta.title !== draft.title || meta.notes !== draft.notes || meta.purpose !== draft.purpose) {
+              dirty.current = true;
+              setDraft({ ...draft, title: meta.title, notes: meta.notes, purpose: meta.purpose });
+            }
+          }}
+          onSubmit={async (meta) => {
+            const next = { ...draft, title: meta.title, notes: meta.notes, purpose: meta.purpose };
+            setDraft(next);
+            if (!(await saveToAccount(next)) || !draftIdRef.current) return { message: t.save_failed, issues: [] };
+            const res = await fetch(`/api/drafts/${draftIdRef.current}/publish`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title: meta.title, notes: meta.notes, purpose: meta.purpose, visibility: meta.visibility }),
+            });
+            const json = (await res.json().catch(() => ({}))) as { publicId?: string; message?: string; issues?: Issue[] };
+            if (res.ok && json.publicId) {
+              dirty.current = false;
+              window.location.assign(`/b/${json.publicId}`);
+              return null;
+            }
+            return { message: json.message ?? t.save_failed, issues: json.issues ?? [] };
+          }}
+        />
+      )}
     </div>
   );
 }

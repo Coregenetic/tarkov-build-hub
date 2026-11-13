@@ -12,10 +12,14 @@ interface Props {
   lang: Lang;
   uiLang: Lang;
   t: GunsmithMessages;
-  onClose: () => void;
+  onClose?: () => void;
+  /** Überschrift-Ebene und ID, falls mehrfach auf einer Seite. */
+  headingId?: string;
+  /** Untertitel ersetzen (Build-Seite: Schnappschuss statt Live-Rechnung). */
+  subtitle?: string;
 }
 
-export function Procurement({ bundle, summary, lang, uiLang, t, onClose }: Props) {
+export function Procurement({ bundle, summary, lang, uiLang, t, onClose, headingId = "drawer-title", subtitle }: Props) {
   const traderName = (id: string) => pickText(bundle.procurement.traders.find((tr) => tr.id === id)?.names, lang, id);
   const itemInfo = (id: string) => {
     const item = bundle.items[id];
@@ -40,14 +44,16 @@ export function Procurement({ bundle, summary, lang, uiLang, t, onClose }: Props
     <>
       <div className={s.drawerHead}>
         <div>
-          <h2 id="drawer-title" className={s.drawerTitle}>
+          <h2 id={headingId} className={s.drawerTitle}>
             {t.buy_title}
           </h2>
-          <span className={s.drawerSub}>{t.buy_sub}</span>
+          <span className={s.drawerSub}>{subtitle ?? t.buy_sub}</span>
         </div>
-        <button type="button" className="btn" onClick={onClose}>
-          {t.back_to_parts}
-        </button>
+        {onClose && (
+          <button type="button" className="btn" onClick={onClose}>
+            {t.back_to_parts}
+          </button>
+        )}
       </div>
       <div className={s.buySummary}>
         <div className={s.buyTile}>
