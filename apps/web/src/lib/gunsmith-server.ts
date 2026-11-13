@@ -134,6 +134,11 @@ function toPlain(data: GameData, id: string): PlainItem | null {
 
 export class WeaponNotFoundError extends Error {}
 
+/** Nach einer Namensänderung im Admin-Bereich: zwischengespeicherte Waffen-Pakete verwerfen. */
+export function invalidateWeaponBundles() {
+  g.tbhBundles!.clear();
+}
+
 export function getWeaponBundle(datasetId: number, weaponId: string): Promise<WeaponBundle> {
   const key = `${datasetId}:${weaponId}`;
   let p = g.tbhBundles!.get(key);

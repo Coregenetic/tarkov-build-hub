@@ -22,7 +22,8 @@ export const FRESH_SESSION_MS = 10 * 60_000;
 
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
-async function requireRole(db: Database | Tx, staff: Staff, min: StaffRole): Promise<StaffRole> {
+/** Prüft die Rolle in der Datenbank (für Aktionen außerhalb dieses Moduls, z. B. Namen und Import). */
+export async function requireRole(db: Database | Tx, staff: Staff, min: StaffRole): Promise<StaffRole> {
   const [u] = await db.select({ role: appUser.role, bannedAt: appUser.bannedAt }).from(appUser).where(eq(appUser.id, staff.id));
   const role = u?.role;
   if (!u || u.bannedAt || (role !== "moderator" && role !== "admin") || (min === "admin" && role !== "admin")) {
@@ -31,7 +32,7 @@ async function requireRole(db: Database | Tx, staff: Staff, min: StaffRole): Pro
   return role;
 }
 
-function requireFresh(staff: Staff, now = new Date()) {
+export function requireFresh(staff: Staff, now = new Date()) {
   if (!staff.sessionStartedAt || now.getTime() - staff.sessionStartedAt.getTime() > FRESH_SESSION_MS) {
     throw new BuildError("reauth_required", "Bitte bestätige diese Aktion mit einer erneuten Twitch-Anmeldung.");
   }

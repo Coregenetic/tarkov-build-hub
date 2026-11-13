@@ -27,7 +27,13 @@ export function SiteHeader({ user, t, loginEnabled, path }: { user: SessionUser 
           </Link>
         )}
         <Link href={`/einstellungen?back=${encodeURIComponent(path)}`} style={{ color: path.startsWith("/einstellungen") ? "var(--ink)" : "var(--muted)", fontSize: 14 }}>
-          {t.nav_settings}
+          <span className="hide-sm">{t.nav_settings}</span>
+          <span className="show-sm">
+            <span aria-hidden="true" style={{ fontSize: 18 }}>
+              ⚙
+            </span>
+            <span className="visually-hidden">{t.nav_settings}</span>
+          </span>
         </Link>
         <a href={`/lang?back=${encodeURIComponent(path)}`} style={{ color: "var(--muted)", fontSize: 14 }} hrefLang={t.language === "English" ? "en" : "de"}>
           {t.language}
@@ -36,7 +42,9 @@ export function SiteHeader({ user, t, loginEnabled, path }: { user: SessionUser 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <Link href={`/u/${user.login}`} style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--ink)" }}>
               <Avatar url={user.avatarUrl} name={user.displayName} size={32} />
-              <span style={{ fontWeight: 600 }}>{user.displayName}</span>
+              <span className="hide-sm" style={{ fontWeight: 600 }}>
+                {user.displayName}
+              </span>
             </Link>
             <form action="/auth/logout" method="post">
               <button type="submit" className="btn" style={{ minHeight: 38, padding: "0 14px", fontSize: 14 }}>

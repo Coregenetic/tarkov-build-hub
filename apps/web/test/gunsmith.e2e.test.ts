@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fetchTarkovDevDataset } from "@tbh/data-adapters";
-import { build, buildVersion, connect, type DbHandle } from "@tbh/db";
+import { eq } from "drizzle-orm";
+import { appUser, auditLog, build, buildComment, buildVersion, connect, report, userSession, type DbHandle } from "@tbh/db";
 import { resetTestDatabase } from "@tbh/db/testing";
 import { startFakeTwitchServer, type FakeTwitchServer } from "../../../packages/auth/test/fake-twitch-server.ts";
 import { activateDataset, importDataset } from "@tbh/import";
@@ -202,6 +203,131 @@ describe.skipIf(!enabled)("Gunsmith: veröffentlichen und Varianten (Ende zu End
     await page.goto(`${base}/u/alice_e2e`);
     await expect(page.getByRole("link", { name: /M4A1 mit SF3P/ }).isVisible()).resolves.toBe(true);
     await alicePage.context().close();
+  });
+
+  async function loginAs(user: { id: string; login: string; display_name: string }, returnTo: string): Promise<Page> {
+    const page = await newPage();
+    twitch.setUser(user);
+    await page.goto(`${base}/auth/twitch/login?returnTo=${encodeURIComponent(returnTo)}`);
+    await page.click("#authorize");
+    await page.waitForURL(`${base}${returnTo}`);
+    return page;
+  }
+
+  it("Community: Gefällt mir, Kommentar und Meldung", async () => {
+    const path = new URL(publishedUrl).pathname;
+    const page = await loginAs({ id: "5002", login: "bob_e2e", display_name: "Bob_E2E" }, path);
+    await page.getByRole("button", { name: /Gefällt mir · 0/ }).filter({ visible: true }).first().click();
+    await page.getByRole("button", { name: /Gefällt dir · 1/ }).waitFor({ timeout: 10_000 });
+    await page.getByPlaceholder("Was ist gut, was würdest du ändern?").fill("Schöner Aufbau, aber laut Quelle zu teuer.");
+    await page.getByRole("button", { name: "Kommentieren" }).click();
+    await page.getByText("Schöner Aufbau, aber laut Quelle zu teuer.").waitFor({ timeout: 10_000 });
+    // Die Seite enthält die Knopfleiste zweimal (Desktop und Handy) – den sichtbaren nehmen.
+    await page.getByRole("button", { name: "Melden", exact: true }).filter({ visible: true }).first().click();
+    const dialog = page.getByRole("dialog", { name: "Melden" });
+    await dialog.getByLabel("Spam oder Werbung").check();
+    await dialog.getByRole("button", { name: "Meldung senden" }).click();
+    await page.getByText("Danke, die Moderation schaut es sich an.").waitFor({ timeout: 10_000 });
+    const reports = await handle.db.select().from(report);
+    expect(reports).toHaveLength(1);
+    await page.context().close();
+  });
+
+  it("Admin-Bereich: für Gäste und normale Nutzer nicht vorhanden", async () => {
+    expect((await fetch(`${base}/admin`)).status).toBe(404);
+    const page = await loginAs({ id: "5001", login: "alice_e2e", display_name: "Alice_E2E" }, "/");
+    const res = await page.goto(`${base}/admin`);
+    expect(res?.status()).toBe(404);
+    const action = await page.request.post(`${base}/api/admin/action`, { headers: { Origin: base }, data: { type: "user.role", userId: 1, role: "moderator" } });
+    expect([401, 403]).toContain(action.status());
+    await page.context().close();
+  });
+
+  let adminPage: Page;
+  it("Admin: Meldung bearbeiten, Build ausblenden und wiederherstellen", async () => {
+    const carol = { id: "5003", login: "carol_admin", display_name: "Carol_Admin" };
+    // Erste Anmeldung legt das Konto an; Admin wird man nur über die Server-Konsole (hier: Datenbank).
+    (await loginAs(carol, "/")).context().close();
+    await handle.db.update(appUser).set({ role: "admin" }).where(eq(appUser.login, "carol_admin"));
+    adminPage = await loginAs(carol, "/admin");
+    const page = adminPage;
+    await page.getByRole("heading", { name: "Übersicht" }).waitFor({ timeout: 10_000 });
+    await page.getByRole("link", { name: /Meldungen\s*1/ }).waitFor({ timeout: 10_000 });
+
+    await page.getByRole("link", { name: /Meldungen/ }).first().click();
+    await page.waitForURL(/\/admin\/meldungen$/);
+    await page.getByRole("button", { name: "Ausblenden", exact: true }).click();
+    await page.getByLabel(/Grund/).fill("Testmeldung bestätigt");
+    await page.getByRole("button", { name: "Ausblenden", exact: true }).click();
+    await page.getByText("Keine offenen Meldungen.").waitFor({ timeout: 10_000 });
+    const [hidden] = await handle.db.select().from(build).where(eq(build.title, "M4A1 mit SF3P"));
+    expect(hidden?.status).toBe("hidden");
+    expect(hidden?.hiddenReason).toBe("Testmeldung bestätigt");
+
+    await page.goto(`${base}/admin/builds?status=hidden`);
+    await page.getByRole("button", { name: "Wiederherstellen" }).click();
+    await page.getByText("Keine Builds für diese Auswahl.").waitFor({ timeout: 10_000 });
+    const [restored] = await handle.db.select().from(build).where(eq(build.title, "M4A1 mit SF3P"));
+    expect(restored?.status).toBe("published");
+    const actions = (await handle.db.select().from(auditLog)).map((a) => a.action);
+    expect(actions).toEqual(expect.arrayContaining(["report.action", "build.restore"]));
+  });
+
+  it("Admin: Waffennamen ändern und zurücksetzen", async () => {
+    const page = adminPage;
+    await page.goto(`${base}/admin/namen?sprache=de&q=M4A1`);
+    const input = page.locator(`#n-${M4A1}-de-name`);
+    await input.fill("Colt M4A1 (Testname)");
+    await input.locator("xpath=..").getByRole("button", { name: "Speichern" }).click();
+    await page.getByText("angezeigt als „Colt M4A1 (Testname)“").waitFor({ timeout: 10_000 });
+    await page.goto(`${base}/gunsmith`);
+    await page.getByRole("link", { name: /Colt M4A1 \(Testname\)/ }).first().waitFor({ timeout: 10_000 });
+    await page.goto(`${base}/admin/namen?sprache=de`);
+    await page.getByRole("button", { name: "Zurücksetzen" }).first().click();
+    await page.getByText("Noch keine eigenen Namen in dieser Sprache.").waitFor({ timeout: 10_000 });
+  });
+
+  it("Admin: Rollenwechsel verlangt eine frische Anmeldung (Twitch force_verify)", async () => {
+    const page = adminPage;
+    const [bob] = await handle.db.select().from(appUser).where(eq(appUser.login, "bob_e2e"));
+    // Sitzung künstlich altern lassen.
+    const [carol] = await handle.db.select().from(appUser).where(eq(appUser.login, "carol_admin"));
+    await handle.db.update(userSession).set({ createdAt: new Date(Date.now() - 30 * 60_000) }).where(eq(userSession.userId, carol!.id));
+    await page.goto(`${base}/admin/nutzer?u=${bob!.id}`);
+    await page.getByRole("button", { name: "Zum Moderator machen" }).click();
+    await page.waitForURL(/\/oauth2\/authorize.*force_verify=true/);
+    await page.click("#authorize");
+    await page.waitForURL(new RegExp(`/admin/nutzer\\?u=${bob!.id}$`));
+    await page.getByRole("button", { name: "Zum Moderator machen" }).click();
+    await page.getByRole("button", { name: "Moderator entziehen" }).waitFor({ timeout: 10_000 });
+    const [after] = await handle.db.select().from(appUser).where(eq(appUser.id, bob!.id));
+    expect(after?.role).toBe("moderator");
+  });
+
+  it("Admin: Banner, Protokoll und CSV-Export", async () => {
+    const page = adminPage;
+    await page.goto(`${base}/admin/system`);
+    await page.getByText("Datenbank").waitFor({ timeout: 10_000 });
+    await page.getByLabel("Hinweisbanner").fill("Testbanner: Wartung heute Abend");
+    await page.getByLabel("Für alle anzeigen").check();
+    await page.getByRole("button", { name: "Banner speichern" }).click();
+    await page.getByText("Gespeichert.").waitFor({ timeout: 10_000 });
+    const visitor = await newPage();
+    await visitor.goto(`${base}/`);
+    await visitor.getByText("Testbanner: Wartung heute Abend").waitFor({ timeout: 10_000 });
+    await visitor.context().close();
+
+    await page.goto(`${base}/admin/protokoll?bereich=users`);
+    await page.getByText("user.set_role").first().waitFor({ timeout: 10_000 });
+    const csv = await page.request.get(`${base}/admin/protokoll/csv`);
+    expect(csv.headers()["content-type"]).toContain("text/csv");
+    const text = await csv.text();
+    expect(text).toContain("report.action");
+    expect(text).toContain("setting.banner");
+    expect((await fetch(`${base}/admin/protokoll/csv`)).status).toBe(404);
+    const comments = await handle.db.select().from(buildComment);
+    expect(comments).toHaveLength(1);
+    await page.context().close();
   });
 
   it("hat beim Testlauf keine Serverfehler geloggt", () => {

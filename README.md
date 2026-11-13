@@ -16,7 +16,8 @@ Fan-Projekt, nicht mit Battlestate Games verbunden. Spieldaten und Bilder stamme
 | 5 | Gunsmith: Aufbauansicht, Teile tauschen, Munition, Beschaffung (Händler/Flohmarkt), Sprache für Item-Namen, Handy-Ansicht, Entwurf im Browser; Import um Händler, Tausch, Aufgaben, Kategorien und Namensprüfung erweitert | erledigt |
 | 6 | Veröffentlichen mit Server-Prüfung, unveränderliche Versionen je Patch, Varianten mit Herkunft, Entwürfe im Konto, Build-Seite, Profil | erledigt |
 | 7 | Startseite mit Feed, Suche und Filter (Text in beiden Sprachen, Waffe, Kaliber, Zweck, Budget, Patch, Ersteller, Teil), Sortierung, Sitemap | erledigt |
-| 8–9 | Community (Merken, Kommentare, Meldungen) und Admin-Bereich, Go-live | offen |
+| 8 | Community (Gefällt mir, Merken, Kommentare, Melden) und Admin-Bereich: Übersicht, Statistiken ohne Tracking, Item-Namen, Datenimport, Builds, Meldungen, Nutzer, Protokoll mit CSV, Banner und Wartungsmodus | erledigt |
+| 9 | Härtung und Go-live auf dem Server | offen |
 
 ## Aufbau
 
@@ -55,7 +56,7 @@ scripts/test-db.sh stop
 
 ## Spieldaten importieren
 
-Siehe [docs/datenimport.md](docs/datenimport.md), [docs/kompatibilitaet.md](docs/kompatibilitaet.md) und [docs/anmeldung.md](docs/anmeldung.md).
+Siehe [docs/datenimport.md](docs/datenimport.md), [docs/kompatibilitaet.md](docs/kompatibilitaet.md), [docs/anmeldung.md](docs/anmeldung.md) und [docs/admin.md](docs/admin.md).
 
 ```bash
 pnpm importer import --mode pvp           # legt eine Vorschau an
