@@ -2,6 +2,11 @@
 
 Ziel: Der Build Hub läuft **zusätzlich** zu allem, was schon auf dem Server läuft. Er hat eigene Dienste, einen eigenen Nutzer, eine eigene Node-Laufzeit und eine eigene Datenbank. Bestehende Dienste, Container, Ports und Firewall-Regeln werden nicht verändert. Am vorhandenen Caddy kommt nur eine eigene Datei hinzu (siehe Schritt 5) – mit Sicherung, Prüfung und Rückweg.
 
+## Stand
+
+Live seit 14.11.2026 unter https://builds.lootgamebot.de – Release `tbh-20261114-d08d406a`, Spieldaten Patch 1.3.0.0 (Datensatz #1), Twitch-Login eingerichtet, Admin: coregenetic.
+DNS: A-Eintrag `builds` → 78.46.160.89 in netcup CloudDNS (lootgamebot.de).
+
 ## Ausgangslage (Inventur 14.11.2026)
 
 - Ubuntu 26.04, 2 Kerne, 3,7 GB RAM, 2 GB Swap, 26 GB frei
