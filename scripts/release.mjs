@@ -12,7 +12,7 @@
  */
 /* global process, console */
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
@@ -57,6 +57,10 @@ cpSync(path.join(root, "packages", "db", "migrations"), path.join(out, "migratio
 
 // 3) Betriebsdateien.
 cpSync(path.join(root, "deploy"), path.join(out, "deploy"), { recursive: true });
+// Skripte immer ausführbar machen – unabhängig davon, wie sie im Arbeitsverzeichnis stehen.
+for (const f of readdirSync(path.join(out, "deploy"))) {
+  if (f.endsWith(".sh") || f === "tbh-admin") chmodSync(path.join(out, "deploy", f), 0o755);
+}
 writeFileSync(path.join(out, "VERSION"), `${version}\ncommit ${git("rev-parse", "HEAD")}\ngebaut ${new Date().toISOString()}\n`);
 
 // 4) Packen.
