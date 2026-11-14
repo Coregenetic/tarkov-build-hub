@@ -8,6 +8,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 . "$HERE/lib.sh"
 need_root
 
+[[ -L $BASE/current ]] || die "Noch kein Release ausgerollt."
 current=$(readlink -f "$BASE/current")
 if [[ -n ${1:-} ]]; then
   target="$BASE/releases/$1"

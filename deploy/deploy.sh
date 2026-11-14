@@ -20,7 +20,9 @@ grep -q '^DATABASE_URL=postgres://tbh:CHANGE_ME' "$BASE/shared/.env" && die "Kei
 name=$(basename "$TARBALL" .tar.gz)
 [[ $name =~ ^tbh-[0-9]{8}-[0-9a-f]{8}(-dirty)?$ ]] || die "Unerwarteter Dateiname: $name"
 target="$BASE/releases/$name"
-previous=$(readlink -f "$BASE/current" 2>/dev/null || true)
+previous=""
+# readlink -f liefert auch für einen fehlenden Verweis einen Pfad – daher erst prüfen, ob es ihn gibt.
+if [[ -L $BASE/current ]]; then previous=$(readlink -f "$BASE/current"); fi
 
 if [[ -d $target ]]; then
   info "Release $name ist schon entpackt"
