@@ -2,7 +2,7 @@
 # Eigener Dienst, eigener Nutzer, eigene Node-Laufzeit – unabhängig von allen anderen Diensten.
 [Unit]
 Description=Tarkov Build Hub (Web)
-After=network-online.target
+After=network-online.target docker.service
 Wants=network-online.target
 
 [Service]

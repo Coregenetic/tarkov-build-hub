@@ -1,12 +1,12 @@
-# Tägliche Datenbanksicherung nach /opt/tarkov-build-hub/backups (14 Tage aufbewahrt).
+# Tägliche Datenbanksicherung aus dem Container tbh-postgres nach /opt/tarkov-build-hub/backups (14 Tage).
+# Läuft als root, weil nur root den Docker-Container ansprechen darf.
 [Unit]
 Description=Tarkov Build Hub (Datenbanksicherung)
+After=docker.service
+Requires=docker.service
 
 [Service]
 Type=oneshot
-User=tbh
-Group=tbh
-EnvironmentFile=/opt/tarkov-build-hub/shared/.env
 ExecStart=/opt/tarkov-build-hub/current/deploy/backup.sh
 NoNewPrivileges=true
 ProtectSystem=strict

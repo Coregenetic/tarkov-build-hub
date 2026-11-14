@@ -5,6 +5,13 @@ set -euo pipefail
 BASE=/opt/tarkov-build-hub
 NODE_BIN="$BASE/runtime/node/bin/node"
 UNITS=(tbh-web.service tbh-maintenance.service tbh-maintenance.timer tbh-backup.service tbh-backup.timer)
+# Werden von den einbindenden Skripten benutzt.
+# shellcheck disable=SC2034
+PG_CONTAINER=tbh-postgres
+# shellcheck disable=SC2034
+PG_VOLUME=tbh-pgdata
+# shellcheck disable=SC2034
+PG_IMAGE=postgres:16-alpine
 
 die() { echo "ABBRUCH: $*" >&2; exit 1; }
 info() { echo "→ $*"; }
@@ -18,6 +25,18 @@ port_taken() {
     host=${host#[}; host=${host%]}
     if [[ $host == "$addr" || $host == "0.0.0.0" || $host == "*" || $host == "::" ]]; then echo "$local"; fi
   done | grep -q .
+}
+
+# KEY=wert in einer Umgebungsdatei setzen (ersetzt die Zeile oder hängt sie an). Rechte bleiben erhalten.
+set_env() {
+  local file=$1 key=$2 value=$3 tmp
+  tmp=$(mktemp)
+  awk -v k="$key" -v v="$value" 'BEGIN { done = 0 }
+    index($0, k "=") == 1 { print k "=" v; done = 1; next }
+    { print }
+    END { if (!done) print k "=" v }' "$file" > "$tmp"
+  cat "$tmp" > "$file"
+  rm -f "$tmp"
 }
 
 health() {

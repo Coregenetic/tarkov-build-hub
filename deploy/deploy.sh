@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Rollt ein Release aus:  sudo ./deploy.sh /pfad/tbh-<version>.tar.gz
 #  1. entpacken nach releases/<version>
-#  2. Datenbank sichern (falls pg_dump vorhanden) und migrieren
+#  2. Datenbank sichern (ab dem zweiten Release) und migrieren
 #  3. Verweis "current" umstellen, tbh-web neu starten
 #  4. Gesundheitsprüfung – schlägt sie fehl, automatisch zurück auf das vorige Release
 # Startet oder lädt ausschließlich tbh-*-Dienste neu.
@@ -14,7 +14,8 @@ need_root
 TARBALL=${1:-}
 [[ -f $TARBALL ]] || die "Nutzung: sudo ./deploy.sh <tbh-version.tar.gz>"
 [[ -x $NODE_BIN ]] || die "Erst ./install.sh ausführen."
-grep -q '^AUTH_SECRET=CHANGE_ME' "$BASE/shared/.env" && die "$BASE/shared/.env ist noch nicht ausgefüllt."
+grep -q '^AUTH_SECRET=CHANGE_ME' "$BASE/shared/.env" && die "AUTH_SECRET fehlt – erst ./install.sh ausführen."
+grep -q '^DATABASE_URL=postgres://tbh:CHANGE_ME' "$BASE/shared/.env" && die "Keine Datenbank eingetragen – erst ./db-install.sh ausführen."
 
 name=$(basename "$TARBALL" .tar.gz)
 [[ $name =~ ^tbh-[0-9]{8}-[0-9a-f]{8}(-dirty)?$ ]] || die "Unerwarteter Dateiname: $name"
@@ -34,17 +35,15 @@ else
 fi
 
 install_units "$target"
-if [[ -n $previous ]] && command -v pg_dump >/dev/null; then
+if [[ -n $previous ]]; then
   info "Sicherung vor der Migration"
   systemctl start tbh-backup.service || die "Sicherung fehlgeschlagen – nichts umgestellt (journalctl -u tbh-backup)."
-elif [[ -n $previous ]]; then
-  echo "   Hinweis: pg_dump nicht gefunden, keine Sicherung vor der Migration."
 fi
 run_migrations "$target"
 
 ln -sfn "$target" "$BASE/current"
 systemctl enable --quiet tbh-web.service tbh-maintenance.timer
-command -v pg_dump >/dev/null && systemctl enable --quiet --now tbh-backup.timer
+systemctl enable --quiet --now tbh-backup.timer
 systemctl start tbh-maintenance.timer
 info "Starte tbh-web neu"
 systemctl restart tbh-web.service
