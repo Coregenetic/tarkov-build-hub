@@ -24,4 +24,12 @@ fi
 info "Von $(basename "$current") auf $(basename "$target")"
 ln -sfn "$target" "$BASE/current"
 systemctl restart tbh-web.service
-if health; then echo "$(basename "$target") läuft."; else die "Gesundheitsprüfung fehlgeschlagen – bitte journalctl -u tbh-web ansehen."; fi
+if health; then
+  echo "$(basename "$target") läuft."
+else
+  echo "$(basename "$target") startet nicht – zurück auf $(basename "$current")." >&2
+  ln -sfn "$current" "$BASE/current"
+  systemctl restart tbh-web.service
+  health && echo "$(basename "$current") läuft wieder." >&2
+  die "Zurückrollen fehlgeschlagen – bitte journalctl -u tbh-web ansehen."
+fi

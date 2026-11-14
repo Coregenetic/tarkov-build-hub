@@ -65,5 +65,7 @@ else
     systemctl restart tbh-web.service
     health && echo "Vorheriges Release läuft wieder." >&2
   fi
+  # Das fehlerhafte Release entfernen, damit rollback.sh es nicht später auswählt.
+  if [[ $target != "$previous" ]]; then rm -rf "$target"; echo "Fehlerhaftes Release $name entfernt." >&2; fi
   exit 1
 fi
